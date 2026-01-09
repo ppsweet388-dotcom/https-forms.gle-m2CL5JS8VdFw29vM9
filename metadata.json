@@ -1,0 +1,7 @@
+{
+  "name": "Patient Meal Tracker Pro",
+  "description": "A comprehensive patient meal tracking system for hospitals covering Admin, Kitchen, and Service workflows with real-time logging and photo verification.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
