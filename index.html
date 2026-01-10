@@ -19,9 +19,18 @@
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
   }
 }
-</script>
-</head>
-<body class="bg-slate-50 text-slate-900">
-    <div id="root"></div>
-</body>
-</html>
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+
