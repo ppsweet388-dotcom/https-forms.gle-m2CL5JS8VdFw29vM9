@@ -8,7 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --app-blue: #2563eb; --app-red: #ef4444; }
+        :root { 
+            --app-blue: #0f172a; 
+            --app-accent: #2563eb;
+            --app-red: #ef4444; 
+        }
         body { 
             font-family: 'Sarabun', sans-serif; 
             background-color: #f8fafc; 
@@ -22,8 +26,15 @@
             70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
         }
-        .urgent-glow { animation: pulse-urgent 2s infinite; border: 2px solid var(--app-red) !important; }
-        @media print { .no-print { display: none !important; } }
+        .urgent-alert { 
+            animation: pulse-urgent 2s infinite; 
+            border: 2px solid var(--app-red) !important; 
+        }
+        @media print { 
+            .no-print { display: none !important; } 
+            .print-area { display: block !important; }
+            body { background: white; }
+        }
     </style>
 <script type="importmap">
 {
@@ -41,18 +52,6 @@
 </head>
 <body class="antialiased">
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
-</body>
-</html>
- "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-  }
-}
-</script>
-</head>
-<body class="antialiased">
-    <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
 </body>
 </html>
