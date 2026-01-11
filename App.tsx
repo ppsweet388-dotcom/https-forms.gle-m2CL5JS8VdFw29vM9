@@ -5,12 +5,12 @@ import {
   CheckCircle, X, RefreshCw,
   Hospital, Settings, Wifi, WifiOff, QrCode as QrIcon, 
   Printer, ShieldAlert, Sparkles, BrainCircuit, Loader2,
-  FileText, Trash2, Paperclip
+  FileText, Trash2
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { MealLog, MealStatus, AgeGroup, DietTexture, Attachment } from './types';
 
-const STORAGE_KEY = 'hospital_meal_v25_stable';
+const STORAGE_KEY = 'hospital_meal_v33_stable';
 const CLOUD_API = 'https://jsonblob.com/api/jsonBlob'; 
 
 const App: React.FC = () => {
@@ -33,8 +33,8 @@ const App: React.FC = () => {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  const pullFromCloud = useCallback(async (targetId: string | any = cloudId, silent = false) => {
-    const id = typeof targetId === 'string' ? targetId : cloudId;
+  const pullFromCloud = useCallback(async (targetId?: string, silent = false) => {
+    const id = targetId || cloudId;
     if (!id) return;
     if (!silent) setIsSyncing(true);
     
@@ -43,12 +43,7 @@ const App: React.FC = () => {
       if (!response.ok) throw new Error("Fetch failed");
       const result = await response.json();
       if (result && result.data) {
-        setLogs(prev => {
-          if (JSON.stringify(result.data) !== JSON.stringify(prev)) {
-            return result.data;
-          }
-          return prev;
-        });
+        setLogs(result.data);
         setOnlineStatus(true);
         if (!silent) notify("อัปเดตข้อมูลแล้ว");
       }
@@ -64,12 +59,12 @@ const App: React.FC = () => {
     const dataToSend = customLogs || logs;
     setIsSyncing(true);
     try {
-      const res = await fetch(`${CLOUD_API}/${cloudId}`, {
+      await fetch(`${CLOUD_API}/${cloudId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ward: wardCode, data: dataToSend, lastUpdate: new Date().toISOString() })
       });
-      if (res.ok) setOnlineStatus(true);
+      setOnlineStatus(true);
     } catch (e) {
       setOnlineStatus(false);
     } finally {
@@ -88,7 +83,6 @@ const App: React.FC = () => {
       localStorage.setItem('cloud_id', sharedCloudId);
       localStorage.setItem('ward_code', sharedWardName);
       window.history.replaceState({}, document.title, window.location.pathname);
-      notify(`เชื่อมวอร์ด ${sharedWardName} แล้ว`);
       pullFromCloud(sharedCloudId);
     } else {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -99,7 +93,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (cloudId) {
-      const interval = setInterval(() => pullFromCloud(cloudId, true), 30000);
+      const interval = setInterval(() => pullFromCloud(cloudId, true), 15000);
       return () => clearInterval(interval);
     }
   }, [cloudId, pullFromCloud]);
@@ -109,7 +103,7 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleInitialSetup = async () => {
-    if (!wardCode) { alert("กรุณาระบุชื่อวอร์ด"); return; }
+    if (!wardCode) { alert("กรุณาระบุชื่อหอผู้ป่วย"); return; }
     setIsSyncing(true);
     try {
       const response = await fetch(CLOUD_API, {
@@ -123,10 +117,10 @@ const App: React.FC = () => {
         setCloudId(newId);
         localStorage.setItem('cloud_id', newId);
         setOnlineStatus(true);
-        notify("Cloud พร้อมใช้งาน");
+        notify("เชื่อมต่อระบบ Cloud สำเร็จ");
       }
     } catch (e) {
-      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ Cloud");
+      alert("ไม่สามารถเชื่อมต่อ Cloud ได้");
     } finally {
       setIsSyncing(false);
     }
@@ -136,7 +130,7 @@ const App: React.FC = () => {
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
     setShowOrderForm(false);
-    notify("ส่งรายการอาหารถึงครัวแล้ว");
+    notify("ส่งใบสั่งอาหารถึงครัวแล้ว");
     if (cloudId) pushToCloud(updatedLogs);
   };
 
@@ -158,12 +152,6 @@ const App: React.FC = () => {
     if (cloudId) pushToCloud(updatedLogs);
   };
 
-  const handleUpdateAttachments = (logId: string, attachments: Attachment[]) => {
-    const updatedLogs = logs.map(l => l.id === logId ? { ...l, attachments } : l);
-    setLogs(updatedLogs);
-    if (cloudId) pushToCloud(updatedLogs);
-  };
-
   const filteredLogs = logs.filter(log => 
     log.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.hn.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -180,25 +168,25 @@ const App: React.FC = () => {
   if (!activeRole) {
     return (
       <div className="min-h-screen bg-[#f1f5f9] flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-6 text-center animate-in fade-in duration-500">
-          <div className="inline-flex p-5 bg-white rounded-3xl shadow-xl border-4 border-white">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="inline-flex p-5 bg-white rounded-3xl shadow-xl">
             <Hospital className="w-12 h-12 text-blue-600" />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">MealSync<span className="text-blue-600">Pro</span></h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">MealSync<span className="text-blue-600">Pro</span></h1>
           
           <div className="grid grid-cols-1 gap-3 pt-4">
-            <RoleCard icon={<ClipboardList />} label="ฝ่ายสั่งอาหาร (Admin)" color="blue" onClick={() => setActiveRole('ADMIN')} />
-            <RoleCard icon={<ChefHat />} label="แผนกครัว (Kitchen)" color="orange" onClick={() => setActiveRole('KITCHEN')} />
-            <RoleCard icon={<PackageCheck />} label="ฝ่ายนำส่ง (Courier)" color="indigo" onClick={() => setActiveRole('DISPATCH')} />
-            <RoleCard icon={<UserCheck />} label="พนักงานบริการ (Service)" color="green" onClick={() => setActiveRole('DELIVERY')} />
-            <RoleCard icon={<Settings />} label="ตั้งค่าระบบ Cloud" color="slate" onClick={() => setActiveRole('VIEWER')} />
+            <RoleCard icon={<ClipboardList />} label="หอผู้ป่วย (Ward)" color="blue" onClick={() => setActiveRole('ADMIN')} />
+            <RoleCard icon={<ChefHat />} label="ห้องครัว (Kitchen)" color="orange" onClick={() => setActiveRole('KITCHEN')} />
+            <RoleCard icon={<PackageCheck />} label="พนักงานส่ง (Courier)" color="indigo" onClick={() => setActiveRole('DISPATCH')} />
+            <RoleCard icon={<UserCheck />} label="พนักงานเสิร์ฟ (Service)" color="green" onClick={() => setActiveRole('DELIVERY')} />
+            <RoleCard icon={<Settings />} label="ตั้งค่า Cloud" color="slate" onClick={() => setActiveRole('VIEWER')} />
           </div>
 
           {wardCode && (
-            <div className={`mt-8 p-4 rounded-2xl flex items-center justify-between shadow-lg ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white transition-all`}>
+            <div className={`mt-8 p-4 rounded-2xl flex items-center justify-between shadow-lg ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white`}>
               <div className="flex items-center gap-3">
                 {onlineStatus ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5 animate-pulse" />}
-                <p className="font-bold uppercase tracking-widest leading-none">{wardCode}</p>
+                <p className="font-bold uppercase tracking-widest">{wardCode}</p>
               </div>
               <button onClick={() => pullFromCloud()} className={`p-2 bg-white/20 rounded-full ${isSyncing ? 'animate-spin' : ''}`}>
                 <RefreshCw className="w-4 h-4" />
@@ -210,12 +198,12 @@ const App: React.FC = () => {
     );
   }
 
-  const roleConfigs: any = {
-    ADMIN: { title: 'Admin Terminal', color: 'bg-blue-600' },
+  const roleConfigs: Record<string, { title: string, color: string }> = {
+    ADMIN: { title: 'Ward Terminal', color: 'bg-blue-600' },
     KITCHEN: { title: 'Kitchen Hub', color: 'bg-orange-500' },
     DISPATCH: { title: 'Courier Port', color: 'bg-indigo-600' },
     DELIVERY: { title: 'Service Point', color: 'bg-green-600' },
-    VIEWER: { title: 'Config', color: 'bg-slate-900' }
+    VIEWER: { title: 'Cloud Sync', color: 'bg-slate-900' }
   };
 
   return (
@@ -223,7 +211,7 @@ const App: React.FC = () => {
       <header className={`${roleConfigs[activeRole].color} text-white px-6 py-6 sticky top-0 z-50 shadow-xl flex items-center justify-between rounded-b-3xl`}>
         <div className="flex items-center gap-4">
           <button onClick={() => setActiveRole(null)} className="p-2 bg-white/20 rounded-xl"><ArrowLeft className="w-6 h-6" /></button>
-          <div className="text-left">
+          <div>
             <h2 className="font-black text-xl italic uppercase leading-none">{roleConfigs[activeRole].title}</h2>
             {wardCode && <p className="text-[10px] font-bold opacity-70 mt-1 uppercase tracking-widest">{wardCode}</p>}
           </div>
@@ -237,76 +225,70 @@ const App: React.FC = () => {
         {activeRole !== 'VIEWER' && (
           <div className="grid grid-cols-4 gap-2">
             <StatCard label="รอทำ" value={stats.ordered} color="text-blue-600" />
-            <StatCard label="รอส่ง" value={stats.ready} color="text-orange-500" />
-            <StatCard label="ส่งแล้ว" value={stats.delivering} color="text-indigo-600" />
-            <StatCard label="เสิร์ฟ" value={stats.done} color="text-green-600" />
+            <StatCard label="พร้อมส่ง" value={stats.ready} color="text-orange-500" />
+            <StatCard label="กำลังส่ง" value={stats.delivering} color="text-indigo-600" />
+            <StatCard label="เสิร์ฟแล้ว" value={stats.done} color="text-green-600" />
           </div>
         )}
 
         {activeRole === 'VIEWER' && (
           <div className="bg-white p-6 rounded-3xl shadow-lg space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">ชื่อวอร์ด / แผนก</label>
-              <input placeholder="เช่น ICU-2" className="w-full p-4 bg-slate-50 rounded-2xl font-black text-2xl text-center uppercase border-none outline-none focus:ring-2 ring-blue-500" value={wardCode} onChange={e => {setWardCode(e.target.value.toUpperCase()); localStorage.setItem('ward_code', e.target.value.toUpperCase());}} />
+            <div className="space-y-2 text-left">
+              <label className="text-[10px] font-black text-slate-400 uppercase">ชื่อวอร์ด / แผนก</label>
+              <input placeholder="เช่น Ward-5, ICU" className="w-full p-4 bg-slate-50 rounded-2xl font-black text-2xl text-center uppercase border-none focus:ring-2 ring-blue-500" value={wardCode} onChange={e => {setWardCode(e.target.value.toUpperCase()); localStorage.setItem('ward_code', e.target.value.toUpperCase());}} />
             </div>
-            <div className="grid grid-cols-1 gap-3">
-              <button onClick={cloudId ? () => pushToCloud() : handleInitialSetup} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold uppercase shadow-lg active:scale-95 transition-all">
-                {cloudId ? 'Sync Cloud Now' : 'Start Sync System'}
-              </button>
-              {cloudId && <button onClick={() => setShowQr(true)} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold uppercase flex items-center justify-center gap-2 shadow-lg"><QrIcon className="w-5 h-5"/> Share QR Access</button>}
-            </div>
+            <button onClick={cloudId ? () => pushToCloud() : handleInitialSetup} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold uppercase shadow-lg">
+              {cloudId ? 'Sync ข้อมูล Cloud' : 'เริ่มใช้งาน Cloud Sync'}
+            </button>
+            {cloudId && <button onClick={() => setShowQr(true)} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-bold uppercase flex items-center justify-center gap-2 shadow-lg"><QrIcon className="w-5 h-5"/> แชร์วอร์ดผ่าน QR</button>}
           </div>
         )}
 
         {activeRole === 'ADMIN' && (
-          <button onClick={() => setShowOrderForm(true)} className="w-full py-8 bg-white border-2 border-dashed border-blue-200 rounded-3xl flex flex-col items-center gap-1 text-blue-600 font-bold hover:bg-blue-50 transition-all active:scale-95">
+          <button onClick={() => setShowOrderForm(true)} className="w-full py-8 bg-white border-2 border-dashed border-blue-200 rounded-3xl flex flex-col items-center gap-1 text-blue-600 font-bold hover:bg-blue-50 transition-all">
             <Plus className="w-8 h-8" />
-            <span className="uppercase italic tracking-tight">เพิ่มใบสั่งอาหารใหม่</span>
+            <span className="uppercase italic tracking-tight">สั่งอาหารใหม่</span>
           </button>
         )}
 
         {activeRole !== 'VIEWER' && (
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-5 h-5" />
-            <input type="text" placeholder="ค้นหาชื่อ, HN, ห้อง..." className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border-none outline-none shadow-sm focus:ring-2 ring-blue-500 transition-all font-bold" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <input type="text" placeholder="ค้นหา HN, ชื่อ, ห้อง..." className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl border-none shadow-sm focus:ring-2 ring-blue-500 font-bold" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
           </div>
         )}
 
         <div className="space-y-2">
-          {filteredLogs.length === 0 ? (
-            <div className="text-center py-20 text-slate-300 font-bold italic uppercase tracking-widest">No Data found</div>
-          ) : (
-            filteredLogs.map(log => {
-              const isUrgent = log.allergyItems || log.omitItems;
-              return (
-                <div key={log.id} onClick={() => setSelectedLog(log)} className={`bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 cursor-pointer active:scale-95 transition-all ${isUrgent ? 'urgent-glow' : ''}`}>
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0 ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{log.roomNumber}</div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <span className="font-bold text-slate-800 truncate block leading-none mb-1">{log.patientName}</span>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">HN: {log.hn} • {log.mealType}</p>
-                  </div>
-                  <StatusBadge status={log.status} />
+          {filteredLogs.map(log => {
+            const isUrgent = log.allergyItems || log.omitItems;
+            return (
+              <div key={log.id} onClick={() => setSelectedLog(log)} className={`bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 cursor-pointer active:scale-95 transition-all ${isUrgent ? 'urgent-glow' : ''}`}>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg shrink-0 ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{log.roomNumber}</div>
+                <div className="flex-1 min-w-0 text-left">
+                  <span className="font-bold text-slate-800 truncate block leading-none mb-1">{log.patientName}</span>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">HN: {log.hn} • {log.mealType}</p>
                 </div>
-              );
-            })
-          )}
+                <StatusBadge status={log.status} />
+              </div>
+            );
+          })}
         </div>
       </main>
 
       {showOrderForm && <OrderForm onSubmit={addLog} onClose={() => setShowOrderForm(false)} />}
-      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onUpdateAttachments={handleUpdateAttachments} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
+      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onShowLabel={(l: MealLog) => {setSelectedLog(null); setShowLabel(l);}} />}
       {showLabel && <LabelPrint log={showLabel} onClose={() => setShowLabel(null)} />}
       
       {showQr && (
         <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-md z-[100] flex items-center justify-center p-6" onClick={() => setShowQr(false)}>
-          <div className="bg-white p-8 rounded-3xl text-center space-y-6 w-full max-w-sm animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-bold uppercase tracking-widest">Ward Sharing QR</h3>
-            <div className="flex justify-center p-4 bg-white rounded-xl shadow-inner overflow-hidden" ref={el => {
+          <div className="bg-white p-8 rounded-3xl text-center space-y-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold uppercase tracking-widest">แชร์วอร์ด</h3>
+            <div className="flex justify-center p-4" ref={el => {
               if (el && !el.innerHTML && typeof (window as any).QRCode !== 'undefined') {
                 new (window as any).QRCode(el, { text: `${window.location.origin}${window.location.pathname}?ward_id=${cloudId}&ward_name=${wardCode}`, width: 220, height: 220 });
               }
             }}></div>
-            <button onClick={() => setShowQr(false)} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl uppercase tracking-widest">Close</button>
+            <button onClick={() => setShowQr(false)} className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl uppercase tracking-widest">ปิด</button>
           </div>
         </div>
       )}
@@ -317,14 +299,14 @@ const App: React.FC = () => {
 };
 
 const StatCard = ({ label, value, color }: any) => (
-  <div className="bg-white p-3 rounded-2xl text-center shadow-sm border border-slate-100 flex flex-col justify-center min-h-[70px]">
+  <div className="bg-white p-3 rounded-2xl text-center shadow-sm border border-slate-100">
     <p className={`text-xl font-black ${color} leading-none`}>{value}</p>
     <p className="text-[8px] font-bold text-slate-400 uppercase mt-1 leading-none">{label}</p>
   </div>
 );
 
 const RoleCard = ({ icon, label, color, onClick }: any) => {
-  const themes: any = { 
+  const themes: Record<string, string> = { 
     blue: 'text-blue-600 bg-blue-50 border-blue-100',
     orange: 'text-orange-600 bg-orange-50 border-orange-100',
     indigo: 'text-indigo-600 bg-indigo-50 border-indigo-100',
@@ -341,7 +323,7 @@ const RoleCard = ({ icon, label, color, onClick }: any) => {
 };
 
 const StatusBadge = ({ status }: any) => {
-  const cfg: any = {
+  const cfg: Record<string, { label: string, color: string }> = {
     ORDERED: { label: 'รอทำ', color: 'bg-blue-100 text-blue-700' },
     KITCHEN_READY: { label: 'รอส่ง', color: 'bg-orange-100 text-orange-700' },
     DISPATCHED: { label: 'กำลังส่ง', color: 'bg-indigo-100 text-indigo-700' },
@@ -354,38 +336,39 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
   const [f, setF] = useState({ 
     hn: '', patientName: '', roomNumber: '', 
     mealType: 'มื้อเช้า', ageGroup: AgeGroup.ADULT, dietTexture: DietTexture.NORMAL,
-    menuItems: '', omitItems: '', allergyItems: '', adminName: 'Staff', aiNote: '' 
+    menuItems: '', omitItems: '', allergyItems: '', adminName: 'Nurse'
   });
+  const [aiNote, setAiNote] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  const checkWithAI = async () => {
+  const checkAI = async () => {
     if (!f.menuItems) return;
     setIsAiLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `ตรวจสอบโภชนาการสั้นๆ 1 ประโยค (ไทย): เมนู ${f.menuItems}, เนื้อ ${f.dietTexture}, งด ${f.omitItems}, แพ้ ${f.allergyItems}.`,
+        contents: `ตรวจสอบสั้นๆ: เมนู ${f.menuItems}, เนื้อสัมผัส ${f.dietTexture}, งด ${f.omitItems}, แพ้ ${f.allergyItems}.`,
       });
-      setF({ ...f, aiNote: response.text || "ตรวจสอบความเหมาะสมแล้ว" });
+      setAiNote(response.text || "ตรวจสอบเรียบร้อย");
     } catch (e) {
-      setF({ ...f, aiNote: "AI analysis unavailable" });
+      setAiNote("พร้อมสำหรับการตรวจสอบ");
     } finally {
       setIsAiLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] p-4 flex items-center justify-center">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-5">
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] p-4 flex items-center justify-center text-left">
+      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-          <h3 className="font-bold text-xl uppercase italic tracking-tight">เพิ่มใบสั่งอาหาร</h3>
+          <h3 className="font-bold text-xl uppercase italic tracking-tight">แบบฟอร์มสั่งอาหาร</h3>
           <button onClick={onClose} className="p-2 bg-white/20 rounded-full"><X /></button>
         </div>
-        <div className="p-6 space-y-4 overflow-y-auto bg-slate-50 text-left no-scrollbar">
+        <div className="p-6 space-y-4 overflow-y-auto bg-slate-50 no-scrollbar">
           <div className="grid grid-cols-2 gap-3">
             <FormInput label="HN" value={f.hn} onChange={(v:any)=>setF({...f, hn:v})}/>
-            <FormInput label="Room" value={f.roomNumber} onChange={(v:any)=>setF({...f, roomNumber:v})}/>
+            <FormInput label="ห้อง" value={f.roomNumber} onChange={(v:any)=>setF({...f, roomNumber:v})}/>
           </div>
           <FormInput label="ชื่อผู้ป่วย" value={f.patientName} onChange={(v:any)=>setF({...f, patientName:v})}/>
           <div className="grid grid-cols-3 gap-2">
@@ -395,21 +378,21 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">เมนูอาหาร</label>
-              <button onClick={checkWithAI} disabled={isAiLoading} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full flex items-center gap-1 active:scale-95 transition-all">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">เมนูอาหาร</label>
+              <button onClick={checkAI} disabled={isAiLoading} className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full flex items-center gap-1 active:scale-95 transition-all">
                 {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />} AI ตรวจ
               </button>
             </div>
-            <textarea placeholder="รายการเมนู..." className="w-full p-4 bg-white rounded-xl h-24 border border-slate-200 outline-none focus:ring-2 ring-blue-500 shadow-inner" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
+            <textarea placeholder="ระบุเมนูอาหาร..." className="w-full p-4 bg-white rounded-xl h-24 border border-slate-200 focus:ring-2 ring-blue-500" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
           </div>
-          {f.aiNote && <div className="p-3 bg-indigo-50 rounded-xl text-[10px] italic text-indigo-900 border border-indigo-100 flex gap-2 animate-in fade-in"><Sparkles className="w-4 h-4 text-indigo-400 shrink-0"/> {f.aiNote}</div>}
+          {aiNote && <div className="p-3 bg-indigo-50 rounded-xl text-[10px] italic text-indigo-900 border border-indigo-100 flex gap-2"><Sparkles className="w-4 h-4 text-indigo-400 shrink-0"/> {aiNote}</div>}
           <div className="p-4 bg-red-50 rounded-2xl space-y-3 border border-red-100">
-             <FormInput label="งด (OMIT)" value={f.omitItems} onChange={(v:any)=>setF({...f, omitItems:v})} isRed />
-             <FormInput label="แพ้ (ALLERGY)" value={f.allergyItems} onChange={(v:any)=>setF({...f, allergyItems:v})} isRed />
+             <FormInput label="งดกิน (OMIT)" value={f.omitItems} onChange={(v:any)=>setF({...f, omitItems:v})} isRed />
+             <FormInput label="แพ้อาหาร (ALLERGY)" value={f.allergyItems} onChange={(v:any)=>setF({...f, allergyItems:v})} isRed />
           </div>
         </div>
         <div className="p-6 bg-white border-t">
-          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000), attachments: []})} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg uppercase tracking-widest active:scale-95 transition-transform">Confirm Order</button>
+          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000), aiNote: aiNote})} className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg uppercase tracking-widest active:scale-95">บันทึกออเดอร์</button>
         </div>
       </div>
     </div>
@@ -419,7 +402,7 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
 const FormInput = ({ label, value, onChange, isRed }: any) => (
   <div className="space-y-1">
     <label className={`text-[9px] font-bold uppercase ml-1 ${isRed ? 'text-red-500' : 'text-slate-400'}`}>{label}</label>
-    <input className={`w-full p-3 rounded-xl font-bold border outline-none ${isRed ? 'bg-white border-red-200 text-red-600' : 'bg-white border-slate-200 shadow-sm'}`} value={value} onChange={e=>onChange(e.target.value)}/>
+    <input className={`w-full p-3 rounded-xl font-bold border outline-none ${isRed ? 'bg-white border-red-200 text-red-600' : 'bg-white border-slate-200'}`} value={value} onChange={e=>onChange(e.target.value)}/>
   </div>
 );
 
@@ -432,30 +415,13 @@ const SelectInput = ({ label, value, options, onChange }: any) => (
   </div>
 );
 
-const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShowLabel }: any) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
-      const newAttachment: Attachment = { id: Date.now().toString(), name: file.name, type: file.type, data: base64Data };
-      onUpdateAttachments(log.id, [...(log.attachments || []), newAttachment]);
-      setIsUploading(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
+const DetailModal = ({ log, role, onClose, onUpdate, onShowLabel }: any) => {
   return (
-    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[110] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-        <div className="p-8 space-y-6 text-left overflow-y-auto max-h-[90vh] no-scrollbar">
+    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[110] flex items-center justify-center p-4 text-left" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="p-8 space-y-6">
           <div className="flex justify-between items-start">
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl font-black shadow-inner italic">{log.roomNumber}</div>
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-3xl font-black italic shadow-inner">{log.roomNumber}</div>
             <button onClick={onClose} className="p-3 bg-slate-50 rounded-full text-slate-400"><X /></button>
           </div>
           <div>
@@ -468,38 +434,21 @@ const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShow
             {log.aiNote && <div className="p-3 bg-white/80 rounded-xl text-[9px] italic text-indigo-900 border border-indigo-50 flex gap-2"><Sparkles className="w-4 h-4 text-indigo-400 shrink-0"/> {log.aiNote}</div>}
             {(log.omitItems || log.allergyItems) && (
               <div className="space-y-2 pt-4 border-t border-slate-200">
-                {log.omitItems && <div className="text-[10px] font-bold text-red-600">⚠️ OMIT: {log.omitItems}</div>}
-                {log.allergyItems && <div className="p-3 bg-red-600 text-white rounded-xl text-[10px] font-bold uppercase flex items-center gap-2 animate-pulse shadow-lg"><ShieldAlert className="w-4 h-4"/> ALLERGY: {log.allergyItems}</div>}
+                {log.omitItems && <div className="text-[10px] font-bold text-red-600">⚠️ งด: {log.omitItems}</div>}
+                {log.allergyItems && <div className="p-3 bg-red-600 text-white rounded-xl text-[10px] font-bold uppercase flex items-center gap-2 animate-pulse shadow-lg"><ShieldAlert className="w-4 h-4"/> แพ้: {log.allergyItems}</div>}
               </div>
             )}
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-bold uppercase text-slate-400 italic">Attachments</h4>
-              <button onClick={() => fileInputRef.current?.click()} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full active:scale-95 transition-all">+ Add File</button>
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {log.attachments?.map((file) => (
-                <div key={file.id} className="bg-slate-50 rounded-xl p-2 flex items-center gap-2 border shadow-sm">
-                   {file.type.startsWith('image/') ? <img src={file.data} className="w-8 h-8 rounded object-cover" /> : <FileText className="w-5 h-5 text-slate-400" />}
-                   <p className="text-[8px] font-bold truncate flex-1">{file.name}</p>
-                   <button onClick={() => onUpdateAttachments(log.id, log.attachments!.filter(a=>a.id!==file.id))} className="text-red-400 hover:scale-110 active:scale-90 transition-transform"><Trash2 className="w-3 h-3"/></button>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="pt-2">
             {role === 'KITCHEN' && log.status === MealStatus.ORDERED && (
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Staff')} className="py-5 bg-orange-500 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95 transition-all">Ready to Ship</button>
-                <button onClick={() => onShowLabel(log)} className="py-5 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95"><Printer className="w-4 h-4"/> Label</button>
+                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Chef_Kitchen')} className="py-5 bg-orange-500 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95 transition-all">เตรียมเสร็จ</button>
+                <button onClick={() => onShowLabel(log)} className="py-5 bg-slate-900 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg active:scale-95"><Printer className="w-4 h-4"/> สติ๊กเกอร์</button>
               </div>
             )}
-            {role === 'DISPATCH' && log.status === MealStatus.KITCHEN_READY && <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier')} className="w-full py-5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95">Pick Up Item</button>}
-            {role === 'DELIVERY' && log.status === MealStatus.DISPATCHED && <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Service')} className="w-full py-5 bg-green-600 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95 transition-all">Delivered Successfully</button>}
+            {role === 'DISPATCH' && log.status === MealStatus.KITCHEN_READY && <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier')} className="w-full py-5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95">รับอาหารไปส่ง</button>}
+            {role === 'DELIVERY' && log.status === MealStatus.DISPATCHED && <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Service')} className="w-full py-5 bg-green-600 text-white font-bold rounded-xl shadow-lg uppercase active:scale-95">เสิร์ฟเรียบร้อย</button>}
           </div>
         </div>
       </div>
@@ -509,21 +458,21 @@ const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShow
 
 const LabelPrint = ({ log, onClose }: any) => (
   <div className="fixed inset-0 bg-white z-[300] flex flex-col items-center justify-center p-8">
-    <div className="w-full max-w-[300px] bg-white border-2 border-black p-6 space-y-4 text-black text-left relative shadow-2xl">
-      <div className="border-b-2 border-black pb-4">
-        <h4 className="text-5xl font-black italic">{log.roomNumber}</h4>
-        <p className="text-lg font-bold mt-1 uppercase">{log.patientName}</p>
-        <p className="text-xs font-bold opacity-60">HN: {log.hn}</p>
+    <div className="w-full max-w-[300px] bg-white border-4 border-black p-6 space-y-4 text-black text-left relative shadow-2xl">
+      <div className="border-b-4 border-black pb-4">
+        <h4 className="text-6xl font-black italic">{log.roomNumber}</h4>
+        <p className="text-xl font-bold mt-1 uppercase">{log.patientName}</p>
+        <p className="text-sm font-bold opacity-60">HN: {log.hn}</p>
       </div>
       <div className="space-y-1">
-        <p className="text-[10px] font-bold uppercase bg-black text-white px-2 py-0.5 w-fit leading-none mb-1">{log.mealType}</p>
-        <p className="text-lg font-bold italic leading-tight py-1">"{log.menuItems}"</p>
-        <div className="text-[9px] font-bold uppercase">DIET: {log.dietTexture}</div>
+        <p className="text-[12px] font-bold uppercase bg-black text-white px-2 py-1 w-fit leading-none mb-1">{log.mealType}</p>
+        <p className="text-xl font-bold italic leading-tight py-1">"{log.menuItems}"</p>
+        <div className="text-[10px] font-bold uppercase">DIET: {log.dietTexture}</div>
       </div>
     </div>
     <div className="mt-8 flex gap-3 no-print">
-      <button onClick={() => window.print()} className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg uppercase italic"><Printer className="w-5 h-5"/> Print</button>
-      <button onClick={onClose} className="px-8 py-4 bg-slate-100 font-bold rounded-xl uppercase italic">Back</button>
+      <button onClick={() => window.print()} className="px-10 py-5 bg-blue-600 text-white font-bold rounded-xl flex items-center gap-2 shadow-lg uppercase italic"><Printer className="w-6 h-6"/> พิมพ์</button>
+      <button onClick={onClose} className="px-10 py-5 bg-slate-100 font-bold rounded-xl uppercase italic">กลับ</button>
     </div>
   </div>
 );
