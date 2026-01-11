@@ -1,90 +1,89 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { 
+ React, { useState, useEffect, useCallback, useRef } from 'react';
+ { 
   ClipboardList, ChefHat, Plus, Search, ArrowLeft, 
   PackageCheck, UserCheck, ChevronRight, 
   CheckCircle, X, RefreshCw,
-  Hospital, Settings, Wifi, WifiOff, QrCode as QrIcon, 
+  Hospital, Settings, Wifi, WifiOff, QrCode a QrIcon, 
   Baby, UtensilsCrossed, Printer, Copy,
   Info, ShieldAlert, Sparkles, BrainCircuit, Loader2,
-  FileText, Image as ImageIcon, Trash2, Paperclip
+  FileText, Image  ImageIcon, Trash2, Paperclip
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
-import { MealLog, MealStatus, AgeGroup, DietTexture, Attachment } from './types';
+ { GoogleGenAI } from "@google/genai";
+ { MealLog, MealStatus, AgeGroup, DietTexture, Attachment } from './types';
 
-const STORAGE_KEY = 'hospital_meal_v19_final_stable';
-const CLOUD_API = 'https://jsonblob.com/api/jsonBlob'; 
+ STORAGE_KEY = 'hospital_meal_v19_final_stable';
+ CLOUD_API = 'https://jsonblob.com/api/jsonBlob'; 
 
-const App: React.FC = () => {
-  const [logs, setLogs] = useState<MealLog[]>([]);
-  const [activeRole, setActiveRole] = useState<string | null>(null);
-  const [showOrderForm, setShowOrderForm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedLog, setSelectedLog] = useState<MealLog | null>(null);
-  const [showLabel, setShowLabel] = useState<MealLog | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [showQr, setShowQr] = useState(false);
+ App: React. [logs, setLogs] = useState<MealLog[]>([]);
+ [activeRole, setActiveRole] = useState<string | 
+  [showOrderForm, setShowOrderForm] = useState(false);
+   [searchTerm, setSearchTerm] = useState('');
+   [selectedLog, setSelectedLog] = useState<MealLog | 
+   [showLabel, setShowLabel] = useState<MealLog | 
+ [successMsg, setSuccessMsg] = useState<string |
+t [showQr, setShowQr] = useState(false);
   
-  const [wardCode, setWardCode] = useState<string>(localStorage.getItem('ward_code') || '');
-  const [cloudId, setCloudId] = useState<string>(localStorage.getItem('cloud_id') || '');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [onlineStatus, setOnlineStatus] = useState<boolean>(true);
+ [wardCode, setWardCode] = useState<string>(localStorage.getItem('ward_code') || '');
+  [cloudId, setCloudId] = useState<string>(localStorage.getItem('cloud_id') || '');
+ [isSyncing, setIsSyncing] = useState(false);
+ [onlineStatus, setOnlineStatus] = useState<boolean>(true);
 
-  const notify = (msg: string) => {
+  notify = (msg: string) => {
     setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 3000);
+    setTimeout(() => setSuccessMsg(), 3000);
   };
 
-  const pullFromCloud = useCallback(async (targetId: string | any = cloudId, silent = false) => {
-    const id = typeof targetId === 'string' ? targetId : cloudId;
-    if (!id) return;
-    if (!silent) setIsSyncing(true);
+ pullFromCloud = useCallback((targetId: string | any = cloudId, silent = false) => {
+    id =  targetId === 'string' ? targetId : cloudId;
+    (!id) ;
+     (!silent) setIsSyncing(true);
     
-    try {
-      const response = await fetch(`${CLOUD_API}/${id}`);
-      if (!response.ok) throw new Error("Fetch failed");
-      const result = await response.json();
-      if (result.data) {
+   {
+     response = fetch(`${CLOUD_API}/${id}`);
+       (!response.ok) Error("Fetch failed");
+      result =  response.json();
+     (result.data) {
         setLogs(prevLogs => {
-          if (JSON.stringify(result.data) !== JSON.stringify(prevLogs)) {
-            return result.data;
+        (JSON.stringify(result.data) !== JSON.stringify(prevLogs)) {
+            result.data;
           }
-          return prevLogs;
+           prevLogs;
         });
         setOnlineStatus(true);
-        if (!silent) notify("ซิงค์ข้อมูลเรียบร้อย");
+         (!silent) notify("ซิงค์ข้อมูลเรียบร้อย");
       }
-    } catch (e) {
+    }  (e) {
       setOnlineStatus(false);
-    } finally {
-      if (!silent) setIsSyncing(false);
+    } {
+       (!silent) setIsSyncing(false);
     }
   }, [cloudId]);
 
-  const pushToCloud = useCallback(async (customLogs?: MealLog[]) => {
-    if (!wardCode || !cloudId) return;
-    const dataToSend = customLogs || logs;
+pushToCloud = useCallback((customLogs?: MealLog[]) => {
+ (!wardCode || !cloudId) ;
+   dataToSend = customLogs || logs;
     setIsSyncing(true);
-    try {
-      const res = await fetch(`${CLOUD_API}/${cloudId}`, {
+    {
+       res = fetch(`${CLOUD_API}/${cloudId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ward: wardCode, data: dataToSend, lastUpdate: new Date().toISOString() })
       });
-      if (res.ok) setOnlineStatus(true);
-      else throw new Error("Push failed");
-    } catch (e) {
+       (res.ok) setOnlineStatus(true);
+      Error("Push failed");
+    } (e) {
       setOnlineStatus(false);
-    } finally {
+    }{
       setIsSyncing(false);
     }
   }, [cloudId, wardCode, logs]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sharedCloudId = params.get('ward_id');
-    const sharedWardName = params.get('ward_name');
+    params =  URLSearchParams(window.location.search);
+     sharedCloudId = params.get('ward_id');
+     sharedWardName = params.get('ward_name');
 
-    if (sharedCloudId && sharedWardName) {
+     (sharedCloudId && sharedWardName) {
       setCloudId(sharedCloudId);
       setWardCode(sharedWardName);
       localStorage.setItem('cloud_id', sharedCloudId);
@@ -92,94 +91,94 @@ const App: React.FC = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
       notify(`เชื่อมต่อวอร์ด ${sharedWardName}`);
       pullFromCloud(sharedCloudId);
-    } else {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setLogs(JSON.parse(saved));
-      if (cloudId) pullFromCloud(cloudId, true);
+    }  {
+     saved = localStorage.getItem(STORAGE_KEY);
+      (saved) setLogs(JSON.parse(saved));
+      (cloudId) pullFromCloud(cloudId, true);
     }
   }, [cloudId, pullFromCloud]);
 
   useEffect(() => {
-    if (!cloudId) return;
-    const interval = setInterval(() => pullFromCloud(cloudId, true), 15000);
-    return () => clearInterval(interval);
+     (!cloudId);
+    interval = setInterval(() => pullFromCloud(cloudId, true), 15000);
+     () => clearInterval(interval);
   }, [cloudId, pullFromCloud]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
   }, [logs]);
 
-  const handleInitialSetup = async () => {
-    if (!wardCode) { alert("กรุณาระบุชื่อวอร์ด"); return; }
+   handleInitialSetup =  () => {
+     (!wardCode) { alert("กรุณาระบุชื่อวอร์ด"); ; }
     setIsSyncing(true);
-    try {
-      const response = await fetch(CLOUD_API, {
+     {
+       response = fetch(CLOUD_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ward: wardCode, data: logs, lastUpdate: new Date().toISOString() })
+        body: JSON.stringify({ ward: wardCode, data: logs, lastUpdate: Date().toISOString() })
       });
-      const location = response.headers.get('Location');
-      const newId = location?.split('/').pop();
-      if (newId) {
+    location = response.headers.get('Location');
+      newId = location?.split('/').pop();
+      (newId) {
         setCloudId(newId);
         localStorage.setItem('cloud_id', newId);
         setOnlineStatus(true);
         notify("เปิดใช้งาน Cloud Sync สำเร็จ");
       }
-    } catch (e) {
+    } (e) {
       alert("สร้าง Cloud ID ไม่สำเร็จ");
-    } finally {
+    }  {
       setIsSyncing(false);
     }
   };
 
-  const addLog = (newLog: MealLog) => {
-    const updatedLogs = [newLog, ...logs];
+   addLog = (newLog: MealLog) => {
+     updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
     setShowOrderForm(false);
     notify("บันทึกสำเร็จ");
-    if (cloudId) pushToCloud(updatedLogs);
+     (cloudId) pushToCloud(updatedLogs);
   };
 
-  const updateStatus = (id: string, newStatus: MealStatus, staffName: string) => {
-    const updatedLogs = logs.map(log => {
-      if (log.id === id) {
-        const updated = { ...log, status: newStatus };
-        const now = new Date().toLocaleString('th-TH');
-        if (newStatus === MealStatus.KITCHEN_READY) { updated.kitchenStaffName = staffName; updated.kitchenTimestamp = now; }
-        else if (newStatus === MealStatus.DISPATCHED) { updated.dispatchStaffName = staffName; updated.dispatchTimestamp = now; }
-        else if (newStatus === MealStatus.DELIVERED) { updated.deliveryStaffName = staffName; updated.deliveryTimestamp = now; }
-        return updated;
+ updateStatus = (id: string, newStatus: MealStatus, staffName: string) => {
+   updatedLogs = logs.map(log => {
+    (log.id === id) {
+       updated = { ...log, status: newStatus };
+      now =  Date().toLocaleString('th-TH');
+ (newStatus === MealStatus.KITCHEN_READY) { updated.kitchenStaffName = staffName; updated.kitchenTimestamp = now; }
+    (newStatus === MealStatus.DISPATCHED) { updated.dispatchStaffName = staffName; updated.dispatchTimestamp = now; }
+       (newStatus === MealStatus.DELIVERED) { updated.deliveryStaffName = staffName; updated.deliveryTimestamp = now; }
+       updated;
       }
-      return log;
+       log;
     });
     setLogs(updatedLogs);
     notify("อัปเดตสถานะแล้ว");
-    setSelectedLog(null);
-    if (cloudId) pushToCloud(updatedLogs);
+    setSelectedLog();
+     (cloudId) pushToCloud(updatedLogs);
   };
 
-  const handleUpdateAttachments = (logId: string, attachments: Attachment[]) => {
-    const updatedLogs = logs.map(l => l.id === logId ? { ...l, attachments } : l);
+ handleUpdateAttachments = (logId: string, attachments: Attachment[]) => {
+  updatedLogs = logs.map(l => l.id === logId ? { ...l, attachments } : l);
     setLogs(updatedLogs);
-    if (cloudId) pushToCloud(updatedLogs);
+     (cloudId) pushToCloud(updatedLogs);
   };
 
-  const filteredLogs = logs.filter(log => 
+ filteredLogs = logs.filter(log => 
     log.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.hn.toLowerCase().includes(searchTerm.toLowerCase()) ||
     log.roomNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const stats = {
+ stats = {
     ordered: logs.filter(l => l.status === MealStatus.ORDERED).length,
     ready: logs.filter(l => l.status === MealStatus.KITCHEN_READY).length,
     delivering: logs.filter(l => l.status === MealStatus.DISPATCHED).length,
     done: logs.filter(l => l.status === MealStatus.DELIVERED).length
   };
 
-  if (!activeRole) {
-    return (
+  (!activeRole) {
+ (
       <div className="min-h-screen bg-[#f1f5f9] flex flex-col items-center justify-center p-6 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px]">
         <div className="w-full max-w-md space-y-6 text-center animate-in fade-in zoom-in duration-500">
           <div className="inline-flex p-5 bg-white rounded-[2.5rem] shadow-xl border-4 border-white transform hover:rotate-3 transition-transform">
@@ -215,7 +214,7 @@ const App: React.FC = () => {
     );
   }
 
-  const roleConfigs: any = {
+ roleConfigs: any = {
     ADMIN: { title: 'Admin Terminal', color: 'bg-blue-600' },
     KITCHEN: { title: 'Kitchen Hub', color: 'bg-orange-500' },
     DISPATCH: { title: 'Courier Port', color: 'bg-indigo-600' },
@@ -223,11 +222,11 @@ const App: React.FC = () => {
     VIEWER: { title: 'System Configuration', color: 'bg-slate-900' }
   };
 
-  return (
+ (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col pb-32">
       <header className={`${roleConfigs[activeRole].color} text-white px-6 py-8 sticky top-0 z-50 shadow-2xl flex items-center justify-between rounded-b-[2.5rem] transition-colors`}>
         <div className="flex items-center gap-4">
-          <button onClick={() => setActiveRole(null)} className="p-3 bg-white/20 rounded-2xl active:scale-95 transition-transform"><ArrowLeft className="w-6 h-6" /></button>
+          <button onClick={() => setActiveRole()} className="p-3 bg-white/20 rounded-2xl active:scale-95 transition-transform"><ArrowLeft className="w-6 h-6" /></button>
           <div className="text-left">
             <h2 className="font-black text-xl italic tracking-tighter uppercase leading-none">{roleConfigs[activeRole].title}</h2>
             {wardCode && <p className="text-[10px] font-bold opacity-70 mt-1 uppercase tracking-widest">{wardCode}</p>}
@@ -279,8 +278,8 @@ const App: React.FC = () => {
 
         <div className="space-y-3">
           {filteredLogs.map(log => {
-            const isUrgent = log.allergyItems || log.omitItems;
-            return (
+            isUrgent = log.allergyItems || log.omitItems;
+          (
               <div key={log.id} onClick={() => setSelectedLog(log)} className={`bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all active:scale-[0.99] cursor-pointer ${isUrgent ? 'urgent-glow' : ''}`}>
                 <div className={`w-14 h-14 rounded-[1.8rem] flex items-center justify-center font-black text-xl shrink-0 ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{log.roomNumber}</div>
                 <div className="flex-1 min-w-0 text-left">
@@ -299,8 +298,8 @@ const App: React.FC = () => {
       </main>
 
       {showOrderForm && <OrderForm onSubmit={addLog} onClose={() => setShowOrderForm(false)} />}
-      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onUpdateAttachments={handleUpdateAttachments} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
-      {showLabel && <LabelPrint log={showLabel} onClose={() => setShowLabel(null)} />}
+      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog()} onUpdate={updateStatus} onUpdateAttachments={handleUpdateAttachments} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
+      {showLabel && <LabelPrint log={showLabel} onClose={() => setShowLabel()} />}
       
       {showQr && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6" onClick={() => setShowQr(false)}>
@@ -322,22 +321,21 @@ const App: React.FC = () => {
   );
 };
 
-const StatCard = ({ label, value, color }: any) => (
+ StatCard = ({ label, value, color }: any) => (
   <div className="bg-white p-3 rounded-[1.5rem] text-center shadow-sm border border-slate-100 min-h-[70px] flex flex-col justify-center">
     <p className={`text-xl font-black ${color} leading-none`}>{value}</p>
     <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mt-1">{label}</p>
   </div>
 );
-
-const RoleCard = ({ icon, label, color, onClick }: any) => {
-  const themes: any = { 
+ RoleCard = ({ icon, label, color, onClick }: any) => {
+ themes: any = { 
     blue: 'text-blue-600 border-blue-50 hover:bg-blue-50',
     orange: 'text-orange-600 border-orange-50 hover:bg-orange-50',
     indigo: 'text-indigo-600 border-indigo-50 hover:bg-indigo-50',
     green: 'text-green-600 border-green-50 hover:bg-green-50',
     slate: 'text-slate-600 border-slate-50 hover:bg-slate-50'
   };
-  return (
+ (
     <button onClick={onClick} className={`p-6 bg-white border-2 border-transparent rounded-[2.5rem] flex items-center gap-5 transition-all shadow-xl shadow-slate-200/30 w-full active:scale-[0.98] ${themes[color]}`}>
       <div className="p-4 bg-slate-50 rounded-[1.5rem] shadow-inner">{icon}</div>
       <span className="font-black text-lg text-slate-800 italic uppercase tracking-tighter">{label}</span>
@@ -346,42 +344,42 @@ const RoleCard = ({ icon, label, color, onClick }: any) => {
   );
 };
 
-const StatusBadge = ({ status }: any) => {
-  const cfg: any = {
+ StatusBadge = ({ status }: any) => {
+   cfg: any = {
     ORDERED: { label: 'รอครัว', color: 'bg-blue-50 text-blue-700' },
     KITCHEN_READY: { label: 'พร้อมส่ง', color: 'bg-orange-50 text-orange-700' },
     DISPATCHED: { label: 'นำส่ง', color: 'bg-indigo-50 text-indigo-700' },
     DELIVERED: { label: 'เสิร์ฟแล้ว', color: 'bg-green-50 text-green-700' }
   };
-  return <span className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase border border-current ${cfg[status].color}`}>{cfg[status].label}</span>;
+   <span className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase border border-current ${cfg[status].color}`}>{cfg[status].label}</span>;
 };
 
-const OrderForm = ({ onSubmit, onClose }: any) => {
-  const [f, setF] = useState({ 
+ OrderForm = ({ onSubmit, onClose }: any) => {
+ [f, setF] = useState({ 
     hn: '', patientName: '', roomNumber: '', 
     mealType: 'มื้อเช้า', ageGroup: AgeGroup.ADULT, dietTexture: DietTexture.NORMAL,
     menuItems: '', omitItems: '', allergyItems: '', adminName: 'Staff', aiNote: '' 
   });
-  const [isAiLoading, setIsAiLoading] = useState(false);
+ [isAiLoading, setIsAiLoading] = useState(false);
 
-  const checkWithAI = async () => {
-    if (!f.menuItems) return;
+ checkWithAI =  () => {
+   (!f.menuItems) ;
     setIsAiLoading(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const res = await ai.models.generateContent({
+  {
+       ai =  GoogleGenAI({ apiKey: process.env.API_KEY });
+     res = ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `ตรวจสอบความเหมาะสมโภชนาการ: เมนู ${f.menuItems}, เนื้อสัมผัส ${f.dietTexture}, งด ${f.omitItems}, แพ้ ${f.allergyItems}. แนะนำสั้นๆ (ภาษาไทย)`,
       });
       setF({ ...f, aiNote: res.text || "ตรวจสอบแล้ว" });
-    } catch (e) {
+    }  (e) {
       setF({ ...f, aiNote: "AI ไม่สามารถตรวจสอบได้ขณะนี้" });
-    } finally {
+    }  {
       setIsAiLoading(false);
     }
   };
 
-  return (
+(
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] p-4 flex items-center justify-center">
       <div className="bg-white w-full max-w-md rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border-8 border-white animate-in slide-in-from-bottom-20">
         <div className="p-8 bg-blue-600 text-white flex justify-between items-center">
@@ -422,14 +420,13 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
   );
 };
 
-const FormInput = ({ label, value, onChange, isRed }: any) => (
+ FormInput = ({ label, value, onChange, isRed }: any) => (
   <div className="space-y-1">
     <label className={`text-[9px] font-black uppercase ml-1 ${isRed ? 'text-red-500' : 'text-slate-400'}`}>{label}</label>
     <input className={`w-full p-4 rounded-xl font-bold border-none outline-none ${isRed ? 'bg-white text-red-600' : 'bg-white shadow-sm border border-slate-100'}`} value={value} onChange={e=>onChange(e.target.value)}/>
   </div>
 );
-
-const SelectInput = ({ label, value, options, onChange }: any) => (
+ SelectInput = ({ label, value, options, onChange }: any) => (
   <div className="space-y-1">
     <label className="text-[9px] font-black text-slate-400 uppercase ml-1 leading-none">{label}</label>
     <select className="w-full p-3 bg-white rounded-xl font-bold border border-slate-100 text-[10px] outline-none" value={value} onChange={e=>onChange(e.target.value)}>
@@ -438,25 +435,25 @@ const SelectInput = ({ label, value, options, onChange }: any) => (
   </div>
 );
 
-const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShowLabel }: any) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
+ DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShowLabel }: any) => {
+ fileInputRef = useRef<HTMLInputElement>();
+[isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+     file = e.target.files?.[0];
+  (!file) ;
     setIsUploading(true);
-    const reader = new FileReader();
+   reader = FileReader();
     reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
-      const newAttachment: Attachment = { id: Date.now().toString(), name: file.name, type: file.type, data: base64Data };
+   base64Data = event.target?.result  string;
+      newAttachment: Attachment = { id: Date.now().toString(), name: file.name, type: file.type, data: base64Data };
       onUpdateAttachments(log.id, [...(log.attachments || []), newAttachment]);
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
   };
 
-  return (
+  (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[110] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl overflow-hidden border-8 border-white animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
         <div className="p-10 space-y-8 text-left overflow-y-auto max-h-[90vh] no-scrollbar">
@@ -516,7 +513,7 @@ const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShow
   );
 };
 
-const LabelPrint = ({ log, onClose }: any) => (
+ LabelPrint = ({ log, onClose }: any) => (
   <div className="fixed inset-0 bg-white z-[300] flex flex-col items-center justify-center p-8">
     <div className="w-full max-w-[320px] bg-white border-4 border-black p-8 space-y-5 text-black text-left shadow-2xl relative">
       <div className="border-b-4 border-black pb-4">
@@ -537,4 +534,4 @@ const LabelPrint = ({ log, onClose }: any) => (
   </div>
 );
 
-export default App;
+ App;
