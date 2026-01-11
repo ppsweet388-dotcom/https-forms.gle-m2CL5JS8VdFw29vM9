@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ClipboardList, ChefHat, Plus, Search, ArrowLeft, 
   PackageCheck, UserCheck, ChevronRight, 
-  AlertTriangle, CheckCircle, X, RefreshCw,
+  CheckCircle, X, RefreshCw,
   Hospital, Settings, Wifi, WifiOff, QrCode as QrIcon, 
-  User, Baby, UtensilsCrossed, Printer, Copy,
+  Baby, UtensilsCrossed, Printer, Copy,
   Info, ShieldAlert, Sparkles, BrainCircuit, Loader2
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
@@ -92,7 +92,7 @@ const App: React.FC = () => {
       if (saved) setLogs(JSON.parse(saved));
       if (cloudId) pullFromCloud(cloudId, true);
     }
-  }, []);
+  }, [cloudId, pullFromCloud]);
 
   useEffect(() => {
     if (!cloudId) return;
@@ -170,14 +170,12 @@ const App: React.FC = () => {
   if (!activeRole) {
     return (
       <div className="min-h-screen bg-[#f1f5f9] flex flex-col items-center justify-center p-6 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px]">
-        <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-700 pb-12">
-          <div className="text-center space-y-2">
-            <div className="inline-flex p-5 bg-white rounded-[2.5rem] shadow-xl border-4 border-white ring-1 ring-blue-50 mb-4 transform hover:rotate-3 transition-transform">
-              <Hospital className="w-12 h-12 text-blue-600" />
-            </div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">MealSync<span className="text-blue-600">Pro</span></h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em]">Integrated Medical Logistics</p>
+        <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-700 pb-12 text-center">
+          <div className="inline-flex p-5 bg-white rounded-[2.5rem] shadow-xl border-4 border-white ring-1 ring-blue-50 mb-4 transform hover:rotate-3 transition-transform">
+            <Hospital className="w-12 h-12 text-blue-600" />
           </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">MealSync<span className="text-blue-600">Pro</span></h1>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em]">Integrated Medical Logistics</p>
 
           <div className="grid grid-cols-1 gap-3">
             <RoleCard icon={<ClipboardList />} label="ฝ่ายจัดการ / สั่งอาหาร" color="blue" onClick={() => setActiveRole('ADMIN')} />
@@ -194,8 +192,8 @@ const App: React.FC = () => {
                   {onlineStatus ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5 animate-pulse" />}
                 </div>
                 <div className="text-left leading-tight">
-                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-1">Station</p>
-                  <p className="text-lg font-black tracking-tight uppercase italic">{wardCode}</p>
+                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-1 text-white">Station</p>
+                  <p className="text-lg font-black tracking-tight uppercase italic text-white">{wardCode}</p>
                 </div>
               </div>
               <button onClick={() => pullFromCloud()} className="p-3 bg-white/20 rounded-full active:scale-90 transition-transform">
@@ -280,7 +278,7 @@ const App: React.FC = () => {
         )}
 
         <div className="space-y-3">
-          {filteredLogs.length === 0 && <div className="py-20 opacity-20 text-center"><UtensilsCrossed className="w-16 h-16 mx-auto mb-2" /><p className="font-black italic uppercase">ไม่มีข้อมูลใบสั่ง</p></div>}
+          {filteredLogs.length === 0 && <div className="py-20 opacity-20 text-center flex flex-col items-center"><UtensilsCrossed className="w-16 h-16 mb-2" /><p className="font-black italic uppercase">ไม่มีข้อมูลใบสั่ง</p></div>}
           {filteredLogs.map(log => {
             const isUrgent = log.allergyItems || log.omitItems;
             return (
@@ -347,7 +345,7 @@ const RoleCard = ({ icon, label, color, onClick }: any) => {
     slate: 'text-slate-600 border-slate-50 hover:bg-slate-50'
   };
   return (
-    <button onClick={onClick} className={`p-6 bg-white border-2 rounded-[2.5rem] flex items-center gap-5 transition-all active:scale-[0.97] group shadow-xl shadow-slate-200/50 ${themes[color]}`}>
+    <button onClick={onClick} className={`p-6 bg-white border-2 rounded-[2.5rem] flex items-center gap-5 transition-all active:scale-[0.97] group shadow-xl shadow-slate-200/50 w-full ${themes[color]}`}>
       <div className="p-4 bg-slate-50 rounded-[1.5rem] group-hover:scale-110 transition-transform shadow-inner">{icon}</div>
       <span className="font-black text-lg text-slate-800 tracking-tight italic uppercase">{label}</span>
       <ChevronRight className="ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
@@ -376,23 +374,22 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
   const checkWithAI = async () => {
     if (!f.menuItems) { alert("กรุณาใส่เมนูอาหารก่อนตรวจสอบ"); return; }
     setIsAiLoading(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `ในฐานะนักโภชนาการโรงพยาบาล ตรวจสอบความปลอดภัยของเมนูนี้สำหรับผู้ป่วย:
-    เมนู: ${f.menuItems}
-    เนื้อสัมผัสที่ระบุ: ${f.dietTexture}
-    กลุ่มอายุ: ${f.ageGroup}
-    สิ่งที่งด: ${f.omitItems || 'ไม่มี'}
-    สิ่งที่แพ้: ${f.allergyItems || 'ไม่มี'}
-    
-    ให้คำแนะนำสั้นๆ 1-2 ประโยคว่าเหมาะสมหรือไม่ (ถ้าไม่เหมาะสมให้เตือนเป็นตัวหนา) และมีข้อควรระวังอะไรไหม (ภาษาไทย)`;
     
     try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: prompt,
+        contents: `ในฐานะนักโภชนาการโรงพยาบาล ตรวจสอบความปลอดภัยของเมนูนี้สำหรับผู้ป่วย:
+        เมนู: ${f.menuItems}
+        เนื้อสัมผัสที่ระบุ: ${f.dietTexture}
+        กลุ่มอายุ: ${f.ageGroup}
+        สิ่งที่งด: ${f.omitItems || 'ไม่มี'}
+        สิ่งที่แพ้: ${f.allergyItems || 'ไม่มี'}
+        ให้คำแนะนำสั้นๆ 1-2 ประโยคว่าเหมาะสมหรือไม่ และมีข้อควรระวังอะไรไหม (ภาษาไทย)`,
       });
       setF({ ...f, aiNote: response.text || "ตรวจสอบสำเร็จแต่ไม่มีคำแนะนำเพิ่มเติม" });
     } catch (e) {
+      console.error(e);
       setF({ ...f, aiNote: "ขออภัย ระบบ AI ไม่สามารถวิเคราะห์ได้ในขณะนี้" });
     } finally {
       setIsAiLoading(false);
@@ -413,9 +410,9 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
           </div>
           <FormInput label="Patient Name" value={f.patientName} onChange={(v:any)=>setF({...f, patientName:v})}/>
           <div className="grid grid-cols-3 gap-2">
-            <SelectInput label="Meal" value={f.mealType} options={['มื้อเช้า', 'มื้อกลางวัน', 'มื้อเย็น']} onChange={v=>setF({...f, mealType:v})}/>
-            <SelectInput label="Age" value={f.ageGroup} options={[AgeGroup.ADULT, AgeGroup.CHILD]} onChange={v=>setF({...f, ageGroup:v as AgeGroup})}/>
-            <SelectInput label="Texture" value={f.dietTexture} options={Object.values(DietTexture)} onChange={v=>setF({...f, dietTexture:v as DietTexture})}/>
+            <SelectInput label="Meal" value={f.mealType} options={['มื้อเช้า', 'มื้อกลางวัน', 'มื้อเย็น']} onChange={(v:any)=>setF({...f, mealType:v})}/>
+            <SelectInput label="Age" value={f.ageGroup} options={[AgeGroup.ADULT, AgeGroup.CHILD]} onChange={(v:any)=>setF({...f, ageGroup:v as AgeGroup})}/>
+            <SelectInput label="Texture" value={f.dietTexture} options={Object.values(DietTexture)} onChange={(v:any)=>setF({...f, dietTexture:v as DietTexture})}/>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
@@ -460,7 +457,7 @@ const SelectInput = ({ label, value, options, onChange }: any) => (
   <div className="space-y-1">
     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
     <select className="w-full p-3 bg-white rounded-xl font-bold border border-slate-100 text-[10px] outline-none" value={value} onChange={e=>onChange(e.target.value)}>
-      {options.map((opt:string)=><option key={opt}>{opt}</option>)}
+      {options.map((opt:string)=><option key={opt} value={opt}>{opt}</option>)}
     </select>
   </div>
 );
@@ -469,7 +466,7 @@ const DetailModal = ({ log, role, onClose, onUpdate, onShowLabel }: any) => {
   return (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[110] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in-95 border-8 border-white" onClick={e => e.stopPropagation()}>
-        <div className="p-10 space-y-8 text-left">
+        <div className="p-10 space-y-8 text-left overflow-y-auto max-h-[90vh]">
           <div className="flex justify-between items-start">
             <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-inner border-2 border-white uppercase italic">{log.roomNumber}</div>
             <button onClick={onClose} className="p-4 bg-slate-50 rounded-full text-slate-400 active:scale-90 transition-transform"><X className="w-6 h-6" /></button>
@@ -495,7 +492,7 @@ const DetailModal = ({ log, role, onClose, onUpdate, onShowLabel }: any) => {
             {(log.omitItems || log.allergyItems) && (
               <div className="space-y-2 pt-4 border-t border-slate-200">
                 {log.omitItems && <div className="p-4 bg-red-50 rounded-2xl text-[10px] font-black text-red-600 border border-red-100 uppercase tracking-widest flex items-center gap-2 italic">⚠️ OMIT: {log.omitItems}</div>}
-                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-2 shadow-lg shadow-red-200"><ShieldAlert className="w-4 h-4"/> ALLERGY: {log.allergyItems}</div>}
+                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-2 shadow-lg shadow-red-200 flex flex-wrap"><ShieldAlert className="w-4 h-4"/> ALLERGY: {log.allergyItems}</div>}
               </div>
             )}
           </div>
