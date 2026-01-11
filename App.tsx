@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   ClipboardList, ChefHat, Plus, Search, ArrowLeft, 
   PackageCheck, UserCheck, ChevronRight, 
   CheckCircle, X, RefreshCw,
   Hospital, Settings, Wifi, WifiOff, QrCode as QrIcon, 
   Baby, UtensilsCrossed, Printer, Copy,
-  Info, ShieldAlert, Sparkles, BrainCircuit, Loader2
+  Info, ShieldAlert, Sparkles, BrainCircuit, Loader2,
+  FileText, Image as ImageIcon, Trash2, Paperclip
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
-import { MealLog, MealStatus, AgeGroup, DietTexture } from './types';
+import { MealLog, MealStatus, AgeGroup, DietTexture, Attachment } from './types';
 
-const STORAGE_KEY = 'hospital_meal_v16_final';
+const STORAGE_KEY = 'hospital_meal_v17_stable';
 const CLOUD_API = 'https://jsonblob.com/api/jsonBlob'; 
 
 const App: React.FC = () => {
@@ -33,6 +34,25 @@ const App: React.FC = () => {
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
+  const pushToCloud = useCallback(async (customLogs?: MealLog[]) => {
+    if (!wardCode || !cloudId) return;
+    const dataToSend = customLogs || logs;
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`${CLOUD_API}/${cloudId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ward: wardCode, data: dataToSend, lastUpdate: new Date().toISOString() })
+      });
+      if (res.ok) setOnlineStatus(true);
+      else throw new Error("Push failed");
+    } catch (e) {
+      setOnlineStatus(false);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [cloudId, wardCode, logs]);
+
   const pullFromCloud = useCallback(async (targetId: string | any = cloudId, silent = false) => {
     const id = typeof targetId === 'string' ? targetId : cloudId;
     if (!id) return;
@@ -45,34 +65,20 @@ const App: React.FC = () => {
       if (result.data) {
         if (JSON.stringify(result.data) !== JSON.stringify(logs)) {
           setLogs(result.data);
+          if (selectedLog) {
+            const updatedSelected = result.data.find((l: MealLog) => l.id === selectedLog.id);
+            if (updatedSelected) setSelectedLog(updatedSelected);
+          }
         }
         setOnlineStatus(true);
-        if (!silent) notify("ข้อมูลอัปเดตเรียบร้อย");
+        if (!silent) notify("ข้อมูลซิงค์ล่าสุดเรียบร้อย");
       }
     } catch (e) {
       setOnlineStatus(false);
     } finally {
       if (!silent) setIsSyncing(false);
     }
-  }, [cloudId, logs]);
-
-  const pushToCloud = useCallback(async (customLogs?: MealLog[]) => {
-    if (!wardCode || !cloudId) return;
-    const dataToSend = customLogs || logs;
-    setIsSyncing(true);
-    try {
-      await fetch(`${CLOUD_API}/${cloudId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ward: wardCode, data: dataToSend, lastUpdate: new Date().toISOString() })
-      });
-      setOnlineStatus(true);
-    } catch (e) {
-      setOnlineStatus(false);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [cloudId, wardCode, logs]);
+  }, [cloudId, logs, selectedLog]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -85,7 +91,7 @@ const App: React.FC = () => {
       localStorage.setItem('cloud_id', sharedCloudId);
       localStorage.setItem('ward_code', sharedWardName);
       window.history.replaceState({}, document.title, window.location.pathname);
-      notify(`เชื่อมต่อวอร์ด ${sharedWardName}`);
+      notify(`เชื่อมต่อวอร์ด ${sharedWardName} สำเร็จ`);
       pullFromCloud(sharedCloudId);
     } else {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -96,7 +102,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!cloudId) return;
-    const interval = setInterval(() => pullFromCloud(cloudId, true), 15000);
+    const interval = setInterval(() => pullFromCloud(cloudId, true), 10000); // Sync faster
     return () => clearInterval(interval);
   }, [cloudId, pullFromCloud]);
 
@@ -105,7 +111,7 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleInitialSetup = async () => {
-    if (!wardCode) { alert("กรุณาระบุชื่อวอร์ดก่อนบันทึก"); return; }
+    if (!wardCode) { alert("กรุณาระบุชื่อวอร์ด"); return; }
     setIsSyncing(true);
     try {
       const response = await fetch(CLOUD_API, {
@@ -119,10 +125,10 @@ const App: React.FC = () => {
         setCloudId(newId);
         localStorage.setItem('cloud_id', newId);
         setOnlineStatus(true);
-        notify("เปิดใช้งาน Cloud Sync สำเร็จ");
+        notify("เปิดใช้งาน Cloud Sync เรียบร้อย");
       }
     } catch (e) {
-      alert("ไม่สามารถสร้าง Cloud ID ได้");
+      alert("เกิดข้อผิดพลาดในการสร้าง Cloud ID");
     } finally {
       setIsSyncing(false);
     }
@@ -132,7 +138,7 @@ const App: React.FC = () => {
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
     setShowOrderForm(false);
-    notify("บันทึกข้อมูลเรียบร้อย");
+    notify("บันทึกใบสั่งเรียบร้อย");
     if (cloudId) pushToCloud(updatedLogs);
   };
 
@@ -151,6 +157,12 @@ const App: React.FC = () => {
     setLogs(updatedLogs);
     notify("อัปเดตสถานะสำเร็จ");
     setSelectedLog(null);
+    if (cloudId) pushToCloud(updatedLogs);
+  };
+
+  const handleUpdateAttachments = (logId: string, attachments: Attachment[]) => {
+    const updatedLogs = logs.map(l => l.id === logId ? { ...l, attachments } : l);
+    setLogs(updatedLogs);
     if (cloudId) pushToCloud(updatedLogs);
   };
 
@@ -186,14 +198,14 @@ const App: React.FC = () => {
           </div>
 
           {wardCode && (
-            <div className={`p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl border-4 border-white ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white transition-colors`}>
+            <div className={`p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl border-4 border-white ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white transition-all`}>
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
                   {onlineStatus ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5 animate-pulse" />}
                 </div>
                 <div className="text-left leading-tight">
-                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-1 text-white">Station</p>
-                  <p className="text-lg font-black tracking-tight uppercase italic text-white">{wardCode}</p>
+                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-1">Station</p>
+                  <p className="text-lg font-black tracking-tight uppercase italic">{wardCode}</p>
                 </div>
               </div>
               <button onClick={() => pullFromCloud()} className="p-3 bg-white/20 rounded-full active:scale-90 transition-transform">
@@ -231,7 +243,7 @@ const App: React.FC = () => {
 
       <main className="p-4 max-w-2xl mx-auto w-full space-y-6 no-print">
         {activeRole !== 'VIEWER' && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
             <StatCard label="รอเตรียม" value={stats.ordered} color="text-blue-600" />
             <StatCard label="รอส่ง" value={stats.ready} color="text-orange-500" />
             <StatCard label="ระหว่างนำส่ง" value={stats.delivering} color="text-indigo-600" />
@@ -292,6 +304,7 @@ const App: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">HN: {log.hn} • {log.mealType}</span>
                     {isUrgent && <ShieldAlert className="w-3 h-3 text-red-500 animate-pulse" />}
+                    {log.attachments && log.attachments.length > 0 && <Paperclip className="w-3 h-3 text-blue-500" />}
                   </div>
                 </div>
                 <StatusBadge status={log.status} />
@@ -302,7 +315,7 @@ const App: React.FC = () => {
       </main>
 
       {showOrderForm && <OrderForm onSubmit={addLog} onClose={() => setShowOrderForm(false)} />}
-      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
+      {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onUpdateAttachments={handleUpdateAttachments} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
       {showLabel && <LabelPrint log={showLabel} onClose={() => setShowLabel(null)} />}
 
       {showQr && (
@@ -376,21 +389,20 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
     setIsAiLoading(true);
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `ในฐานะนักโภชนาการโรงพยาบาล ตรวจสอบความปลอดภัยของเมนูนี้สำหรับผู้ป่วย:
         เมนู: ${f.menuItems}
-        เนื้อสัมผัสที่ระบุ: ${f.dietTexture}
+        เนื้อสัมผัส: ${f.dietTexture}
         กลุ่มอายุ: ${f.ageGroup}
         สิ่งที่งด: ${f.omitItems || 'ไม่มี'}
         สิ่งที่แพ้: ${f.allergyItems || 'ไม่มี'}
-        ให้คำแนะนำสั้นๆ 1-2 ประโยคว่าเหมาะสมหรือไม่ และมีข้อควรระวังอะไรไหม (ภาษาไทย)`,
+        วิเคราะห์สั้นๆ (ภาษาไทย) ไม่เกิน 2 ประโยค`,
       });
-      setF({ ...f, aiNote: response.text || "ตรวจสอบสำเร็จแต่ไม่มีคำแนะนำเพิ่มเติม" });
+      setF({ ...f, aiNote: response.text || "ตรวจสอบเสร็จสมบูรณ์" });
     } catch (e) {
-      console.error(e);
-      setF({ ...f, aiNote: "ขออภัย ระบบ AI ไม่สามารถวิเคราะห์ได้ในขณะนี้" });
+      setF({ ...f, aiNote: "ระบบวิเคราะห์ AI ขัดข้องชั่วคราว" });
     } finally {
       setIsAiLoading(false);
     }
@@ -419,10 +431,10 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Menu Items</label>
               <button onClick={checkWithAI} disabled={isAiLoading} className="text-[10px] font-black text-indigo-600 flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full active:scale-95 transition-all">
                 {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
-                ตรวจทานด้วย AI
+                ตรวจโดย AI
               </button>
             </div>
-            <textarea placeholder="เช่น ข้าวต้มหมู, นมจืด..." className="w-full p-5 bg-white rounded-[1.8rem] font-bold h-24 border border-slate-100 outline-none focus:ring-4 ring-blue-50 shadow-inner" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
+            <textarea placeholder="ระบุชื่อเมนูอาหาร..." className="w-full p-5 bg-white rounded-[1.8rem] font-bold h-24 border border-slate-100 outline-none focus:ring-4 ring-blue-50 shadow-inner" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
           </div>
           
           {f.aiNote && (
@@ -439,7 +451,7 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
         </div>
         <div className="p-8 border-t flex gap-4 bg-white">
           <button onClick={onClose} className="flex-1 font-black text-slate-400 uppercase text-xs italic">Cancel</button>
-          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000+1000)})} className="flex-[2] py-5 bg-blue-600 text-white font-black rounded-[2rem] shadow-lg active:scale-95 transition-transform uppercase italic tracking-tighter text-lg">Confirm Order</button>
+          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000+1000), attachments: []})} className="flex-[2] py-5 bg-blue-600 text-white font-black rounded-[2rem] shadow-lg active:scale-95 transition-transform uppercase italic tracking-tighter text-lg">Confirm Order</button>
         </div>
       </div>
     </div>
@@ -462,21 +474,49 @@ const SelectInput = ({ label, value, options, onChange }: any) => (
   </div>
 );
 
-const DetailModal = ({ log, role, onClose, onUpdate, onShowLabel }: any) => {
+const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShowLabel }: any) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert("ขนาดไฟล์ต้องไม่เกิน 2MB"); return; }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target?.result as string;
+      const newAttachment: Attachment = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type,
+        data: base64Data
+      };
+      const updatedAttachments = [...(log.attachments || []), newAttachment];
+      onUpdateAttachments(log.id, updatedAttachments);
+      setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAttachment = (attachmentId: string) => {
+    if (!window.confirm("ยืนยันการลบไฟล์?")) return;
+    const updated = (log.attachments || []).filter(a => a.id !== attachmentId);
+    onUpdateAttachments(log.id, updated);
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[110] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in-95 border-8 border-white" onClick={e => e.stopPropagation()}>
-        <div className="p-10 space-y-8 text-left overflow-y-auto max-h-[90vh]">
+        <div className="p-10 space-y-8 text-left overflow-y-auto max-h-[90vh] no-scrollbar">
           <div className="flex justify-between items-start">
             <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-inner border-2 border-white uppercase italic">{log.roomNumber}</div>
             <button onClick={onClose} className="p-4 bg-slate-50 rounded-full text-slate-400 active:scale-90 transition-transform"><X className="w-6 h-6" /></button>
           </div>
           
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h3 className="text-3xl font-black text-slate-900 leading-none italic tracking-tighter uppercase">{log.patientName}</h3>
-              {log.ageGroup === AgeGroup.CHILD && <Baby className="w-8 h-8 text-pink-500" />}
-            </div>
+            <h3 className="text-3xl font-black text-slate-900 leading-none italic tracking-tighter uppercase">{log.patientName}</h3>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">HN: {log.hn} • {log.mealType}</p>
           </div>
 
@@ -484,31 +524,61 @@ const DetailModal = ({ log, role, onClose, onUpdate, onShowLabel }: any) => {
             <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 w-fit px-3 py-1 rounded-full"><Info className="w-3 h-3"/> {log.dietTexture}</div>
             <p className="text-2xl font-black text-slate-800 leading-snug tracking-tight italic">"{log.menuItems}"</p>
             {log.aiNote && (
-              <div className="p-4 bg-indigo-50/80 border border-indigo-100 rounded-2xl flex gap-3 italic text-[11px] text-indigo-900">
-                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex gap-3 text-[11px] text-indigo-900 italic">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
                 {log.aiNote}
               </div>
             )}
             {(log.omitItems || log.allergyItems) && (
               <div className="space-y-2 pt-4 border-t border-slate-200">
-                {log.omitItems && <div className="p-4 bg-red-50 rounded-2xl text-[10px] font-black text-red-600 border border-red-100 uppercase tracking-widest flex items-center gap-2 italic">⚠️ OMIT: {log.omitItems}</div>}
-                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest animate-pulse flex items-center gap-2 shadow-lg shadow-red-200 flex flex-wrap"><ShieldAlert className="w-4 h-4"/> ALLERGY: {log.allergyItems}</div>}
+                {log.omitItems && <div className="p-4 bg-red-50 rounded-2xl text-[10px] font-black text-red-600 border border-red-100 uppercase italic">⚠️ งด: {log.omitItems}</div>}
+                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg animate-pulse"><ShieldAlert className="w-4 h-4"/> แพ้: {log.allergyItems}</div>}
               </div>
             )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">เอกสาร / รูปถาดอาหาร</h4>
+              <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="p-2 bg-blue-50 text-blue-600 rounded-full flex items-center gap-2 px-4 text-[10px] font-black uppercase active:scale-95 transition-all">
+                {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} เพิ่มไฟล์
+              </button>
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {log.attachments?.map((file) => (
+                <div key={file.id} className="group relative bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                    {file.type.startsWith('image/') ? <img src={file.data} className="w-full h-full object-cover" /> : <FileText className="w-5 h-5 text-slate-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[8px] font-bold text-slate-800 truncate">{file.name}</p>
+                    <button onClick={() => removeAttachment(file.id)} className="text-[8px] font-black text-red-400 uppercase">ลบไฟล์</button>
+                  </div>
+                </div>
+              ))}
+              {(!log.attachments || log.attachments.length === 0) && (
+                <div className="col-span-2 py-6 border-2 border-dashed border-slate-100 rounded-[2rem] flex flex-col items-center justify-center opacity-30">
+                  <ImageIcon className="w-6 h-6 mb-1 text-slate-400" />
+                  <p className="text-[9px] font-black uppercase italic tracking-widest">ไม่มีไฟล์แนบ</p>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4 pt-2">
             {role === 'KITCHEN' && log.status === MealStatus.ORDERED && (
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Chef-Main')} className="py-6 bg-orange-500 text-white font-black text-xl rounded-[2rem] shadow-xl uppercase italic active:scale-95 transition-transform">Ready for Dispatch</button>
+                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Kitchen-1')} className="py-6 bg-orange-500 text-white font-black text-xl rounded-[2rem] shadow-xl uppercase italic active:scale-95 transition-transform">Ready</button>
                 <button onClick={() => onShowLabel(log)} className="py-6 bg-slate-900 text-white font-black text-xl rounded-[2rem] flex items-center justify-center gap-2 uppercase italic shadow-xl active:scale-95 transition-transform"><Printer className="w-5 h-5"/> Label</button>
               </div>
             )}
             {role === 'DISPATCH' && log.status === MealStatus.KITCHEN_READY && (
-              <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier-Unit')} className="w-full py-7 bg-indigo-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Start Delivery</button>
+              <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier-1')} className="w-full py-7 bg-indigo-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Start Delivery</button>
             )}
             {role === 'DELIVERY' && log.status === MealStatus.DISPATCHED && (
-              <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Service-Unit')} className="w-full py-7 bg-green-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Confirm Served</button>
+              <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Nurse-1')} className="w-full py-7 bg-green-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Served</button>
             )}
           </div>
         </div>
@@ -524,26 +594,25 @@ const LabelPrint = ({ log, onClose }: any) => (
       <div className="border-b-4 border-black pb-4">
         <h4 className="text-6xl font-black italic tracking-tighter">{log.roomNumber}</h4>
         <p className="text-xl font-black mt-2 uppercase">{log.patientName}</p>
-        <p className="text-sm font-bold opacity-60">HN: {log.hn} ({log.ageGroup})</p>
+        <p className="text-sm font-bold opacity-60">HN: {log.hn}</p>
       </div>
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <p className="text-sm font-black uppercase bg-black text-white px-3 py-1">{log.mealType}</p>
-          <p className="text-[10px] font-bold opacity-50">{log.orderTimestamp}</p>
         </div>
         <p className="text-2xl font-black leading-tight italic py-2">"{log.menuItems}"</p>
         <div className="bg-slate-100 p-2 text-[10px] font-black uppercase">Diet: {log.dietTexture}</div>
       </div>
       {(log.allergyItems || log.omitItems) && (
         <div className="bg-black text-white p-4 rounded space-y-1">
-          {log.allergyItems && <p className="text-xs font-black uppercase">🚨 ALLERGY: {log.allergyItems}</p>}
-          {log.omitItems && <p className="text-xs font-black uppercase italic">⚠️ OMIT: {log.omitItems}</p>}
+          {log.allergyItems && <p className="text-xs font-black uppercase tracking-widest">🚨 ALLERGY: {log.allergyItems}</p>}
+          {log.omitItems && <p className="text-xs font-black uppercase italic tracking-widest">⚠️ OMIT: {log.omitItems}</p>}
         </div>
       )}
     </div>
     <div className="mt-12 flex gap-4 no-print">
-      <button onClick={() => window.print()} className="px-10 py-5 bg-blue-600 text-white font-black rounded-[2rem] flex items-center gap-3 shadow-xl active:scale-95 transition-transform uppercase italic"><Printer className="w-6 h-6"/> Print Label</button>
-      <button onClick={onClose} className="px-10 py-5 bg-slate-100 font-black rounded-[2rem] uppercase italic">Close</button>
+      <button onClick={() => window.print()} className="px-10 py-5 bg-blue-600 text-white font-black rounded-[2rem] flex items-center gap-3 shadow-xl active:scale-95 transition-transform uppercase italic"><Printer className="w-6 h-6"/> Print</button>
+      <button onClick={onClose} className="px-10 py-5 bg-slate-100 font-black rounded-[2rem] uppercase italic">Back</button>
     </div>
   </div>
 );
