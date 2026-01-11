@@ -11,7 +11,7 @@ import {
 import { GoogleGenAI } from "@google/genai";
 import { MealLog, MealStatus, AgeGroup, DietTexture, Attachment } from './types';
 
-const STORAGE_KEY = 'hospital_meal_v17_stable';
+const STORAGE_KEY = 'hospital_meal_v18_stable';
 const CLOUD_API = 'https://jsonblob.com/api/jsonBlob'; 
 
 const App: React.FC = () => {
@@ -71,7 +71,7 @@ const App: React.FC = () => {
           }
         }
         setOnlineStatus(true);
-        if (!silent) notify("ข้อมูลซิงค์ล่าสุดเรียบร้อย");
+        if (!silent) notify("อัปเดตข้อมูลสำเร็จ");
       }
     } catch (e) {
       setOnlineStatus(false);
@@ -91,7 +91,7 @@ const App: React.FC = () => {
       localStorage.setItem('cloud_id', sharedCloudId);
       localStorage.setItem('ward_code', sharedWardName);
       window.history.replaceState({}, document.title, window.location.pathname);
-      notify(`เชื่อมต่อวอร์ด ${sharedWardName} สำเร็จ`);
+      notify(`เชื่อมต่อ ${sharedWardName} แล้ว`);
       pullFromCloud(sharedCloudId);
     } else {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -102,7 +102,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!cloudId) return;
-    const interval = setInterval(() => pullFromCloud(cloudId, true), 10000); // Sync faster
+    const interval = setInterval(() => pullFromCloud(cloudId, true), 10000);
     return () => clearInterval(interval);
   }, [cloudId, pullFromCloud]);
 
@@ -111,7 +111,7 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleInitialSetup = async () => {
-    if (!wardCode) { alert("กรุณาระบุชื่อวอร์ด"); return; }
+    if (!wardCode) { alert("ระบุชื่อวอร์ด"); return; }
     setIsSyncing(true);
     try {
       const response = await fetch(CLOUD_API, {
@@ -125,10 +125,10 @@ const App: React.FC = () => {
         setCloudId(newId);
         localStorage.setItem('cloud_id', newId);
         setOnlineStatus(true);
-        notify("เปิดใช้งาน Cloud Sync เรียบร้อย");
+        notify("Cloud Sync พร้อมใช้งาน");
       }
     } catch (e) {
-      alert("เกิดข้อผิดพลาดในการสร้าง Cloud ID");
+      alert("สร้าง Cloud ID ล้มเหลว");
     } finally {
       setIsSyncing(false);
     }
@@ -138,7 +138,7 @@ const App: React.FC = () => {
     const updatedLogs = [newLog, ...logs];
     setLogs(updatedLogs);
     setShowOrderForm(false);
-    notify("บันทึกใบสั่งเรียบร้อย");
+    notify("สั่งอาหารเรียบร้อย");
     if (cloudId) pushToCloud(updatedLogs);
   };
 
@@ -155,7 +155,7 @@ const App: React.FC = () => {
       return log;
     });
     setLogs(updatedLogs);
-    notify("อัปเดตสถานะสำเร็จ");
+    notify("อัปเดตสถานะแล้ว");
     setSelectedLog(null);
     if (cloudId) pushToCloud(updatedLogs);
   };
@@ -183,33 +183,31 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#f1f5f9] flex flex-col items-center justify-center p-6 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:24px_24px]">
         <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-700 pb-12 text-center">
-          <div className="inline-flex p-5 bg-white rounded-[2.5rem] shadow-xl border-4 border-white ring-1 ring-blue-50 mb-4 transform hover:rotate-3 transition-transform">
+          <div className="inline-flex p-5 bg-white rounded-[2.5rem] shadow-xl border-4 border-white ring-1 ring-blue-50 transform hover:rotate-3 transition-transform">
             <Hospital className="w-12 h-12 text-blue-600" />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">MealSync<span className="text-blue-600">Pro</span></h1>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.4em]">Integrated Medical Logistics</p>
 
           <div className="grid grid-cols-1 gap-3">
-            <RoleCard icon={<ClipboardList />} label="ฝ่ายจัดการ / สั่งอาหาร" color="blue" onClick={() => setActiveRole('ADMIN')} />
-            <RoleCard icon={<ChefHat />} label="แผนกครัว / เตรียม" color="orange" onClick={() => setActiveRole('KITCHEN')} />
-            <RoleCard icon={<PackageCheck />} label="เจ้าหน้าที่นำส่ง (Courier)" color="indigo" onClick={() => setActiveRole('DISPATCH')} />
-            <RoleCard icon={<UserCheck />} label="พนักงานบริการ (Service)" color="green" onClick={() => setActiveRole('DELIVERY')} />
-            <RoleCard icon={<Settings />} label="ตั้งค่าระบบ & Cloud Sync" color="slate" onClick={() => setActiveRole('VIEWER')} />
+            <RoleCard icon={<ClipboardList />} label="สั่งอาหาร (Admin)" color="blue" onClick={() => setActiveRole('ADMIN')} />
+            <RoleCard icon={<ChefHat />} label="แผนกครัว (Kitchen)" color="orange" onClick={() => setActiveRole('KITCHEN')} />
+            <RoleCard icon={<PackageCheck />} label="เจ้าหน้าที่ส่ง (Courier)" color="indigo" onClick={() => setActiveRole('DISPATCH')} />
+            <RoleCard icon={<UserCheck />} label="พนักงานเสิร์ฟ (Service)" color="green" onClick={() => setActiveRole('DELIVERY')} />
+            <RoleCard icon={<Settings />} label="ตั้งค่า Cloud" color="slate" onClick={() => setActiveRole('VIEWER')} />
           </div>
 
           {wardCode && (
-            <div className={`p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl border-4 border-white ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white transition-all`}>
-              <div className="flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md">
-                  {onlineStatus ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5 animate-pulse" />}
-                </div>
-                <div className="text-left leading-tight">
-                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest mb-1">Station</p>
-                  <p className="text-lg font-black tracking-tight uppercase italic">{wardCode}</p>
+            <div className={`p-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl border-4 border-white ${onlineStatus ? 'bg-blue-600' : 'bg-red-500'} text-white`}>
+              <div className="flex items-center gap-4 text-left">
+                {onlineStatus ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5 animate-pulse" />}
+                <div>
+                  <p className="text-[9px] font-black opacity-60 uppercase tracking-widest leading-none mb-1">Station</p>
+                  <p className="text-lg font-black tracking-tight uppercase italic leading-none">{wardCode}</p>
                 </div>
               </div>
-              <button onClick={() => pullFromCloud()} className="p-3 bg-white/20 rounded-full active:scale-90 transition-transform">
-                <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <button onClick={() => pullFromCloud()} className={`p-3 bg-white/20 rounded-full ${isSyncing ? 'animate-spin' : ''}`}>
+                <RefreshCw className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -223,62 +221,53 @@ const App: React.FC = () => {
     KITCHEN: { title: 'Kitchen Hub', color: 'bg-orange-500' },
     DISPATCH: { title: 'Courier Port', color: 'bg-indigo-600' },
     DELIVERY: { title: 'Service Point', color: 'bg-green-600' },
-    VIEWER: { title: 'System Setup', color: 'bg-slate-900' }
+    VIEWER: { title: 'Cloud Setup', color: 'bg-slate-900' }
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col pb-32">
-      <header className={`${roleConfigs[activeRole].color} text-white px-6 py-8 sticky top-0 z-50 shadow-2xl flex items-center justify-between rounded-b-[2.5rem] no-print transition-colors`}>
+      <header className={`${roleConfigs[activeRole].color} text-white px-6 py-8 sticky top-0 z-50 shadow-2xl flex items-center justify-between rounded-b-[2.5rem] no-print`}>
         <div className="flex items-center gap-4">
-          <button onClick={() => setActiveRole(null)} className="p-3 bg-white/20 rounded-2xl hover:bg-white/30 transition-all"><ArrowLeft className="w-6 h-6" /></button>
+          <button onClick={() => setActiveRole(null)} className="p-3 bg-white/20 rounded-2xl"><ArrowLeft className="w-6 h-6" /></button>
           <div className="text-left">
-            <h2 className="font-black text-xl leading-none italic tracking-tighter uppercase">{roleConfigs[activeRole].title}</h2>
+            <h2 className="font-black text-xl italic tracking-tighter uppercase leading-none">{roleConfigs[activeRole].title}</h2>
             {wardCode && <p className="text-[10px] font-bold opacity-70 mt-1 uppercase tracking-widest">{wardCode}</p>}
           </div>
         </div>
-        <button onClick={() => pullFromCloud()} disabled={isSyncing} className={`p-3 bg-white/20 rounded-full ${isSyncing ? 'animate-spin' : ''}`}>
+        <button onClick={() => pullFromCloud()} className={`p-3 bg-white/20 rounded-full ${isSyncing ? 'animate-spin' : ''}`}>
           <RefreshCw className="w-5 h-5" />
         </button>
       </header>
 
       <main className="p-4 max-w-2xl mx-auto w-full space-y-6 no-print">
         {activeRole !== 'VIEWER' && (
-          <div className="grid grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-4 duration-500">
-            <StatCard label="รอเตรียม" value={stats.ordered} color="text-blue-600" />
+          <div className="grid grid-cols-4 gap-2">
+            <StatCard label="รอทำ" value={stats.ordered} color="text-blue-600" />
             <StatCard label="รอส่ง" value={stats.ready} color="text-orange-500" />
-            <StatCard label="ระหว่างนำส่ง" value={stats.delivering} color="text-indigo-600" />
+            <StatCard label="ส่งอยู่" value={stats.delivering} color="text-indigo-600" />
             <StatCard label="เสิร์ฟแล้ว" value={stats.done} color="text-green-600" />
           </div>
         )}
 
         {activeRole === 'VIEWER' && (
-          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 space-y-8 animate-in slide-in-from-bottom-4">
+          <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 space-y-8">
             <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">ชื่อวอร์ด / หน่วยงาน</label>
-              <input placeholder="เช่น ICU-7, WARD-5" className="w-full p-6 bg-slate-50 rounded-[2rem] font-black text-3xl border-none outline-none focus:ring-4 ring-blue-50 transition-all text-center uppercase italic" value={wardCode} onChange={e => {setWardCode(e.target.value.toUpperCase()); localStorage.setItem('ward_code', e.target.value.toUpperCase());}} />
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ward Name</label>
+              <input placeholder="เช่น ICU-7" className="w-full p-6 bg-slate-50 rounded-[2rem] font-black text-3xl border-none outline-none focus:ring-4 ring-blue-50 text-center uppercase italic" value={wardCode} onChange={e => {setWardCode(e.target.value.toUpperCase()); localStorage.setItem('ward_code', e.target.value.toUpperCase());}} />
             </div>
             <div className="grid grid-cols-1 gap-4">
-              <button onClick={cloudId ? () => pushToCloud() : handleInitialSetup} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-transform uppercase tracking-tight">
-                {cloudId ? 'อัปเดตข้อมูลขึ้น Cloud' : 'บันทึก & เริ่มซิงค์ข้อมูล Cloud'}
+              <button onClick={cloudId ? () => pushToCloud() : handleInitialSetup} className="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black shadow-lg uppercase italic">
+                {cloudId ? 'Sync Updates' : 'Enable Cloud Sync'}
               </button>
-              {cloudId && (
-                <>
-                  <button onClick={() => setShowQr(true)} className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black flex items-center justify-center gap-3 active:scale-[0.98] transition-transform shadow-lg uppercase italic"><QrIcon className="w-5 h-5"/> โชว์ QR แชร์เครื่องอื่น</button>
-                  <button onClick={() => {
-                    const url = `${window.location.origin}${window.location.pathname}?ward_id=${cloudId}&ward_name=${wardCode}`;
-                    navigator.clipboard.writeText(url);
-                    notify("คัดลอกลิงก์แชร์แล้ว");
-                  }} className="w-full py-6 bg-slate-100 text-slate-500 rounded-[2rem] font-black flex items-center justify-center gap-3 uppercase text-xs border border-slate-200"><Copy className="w-4 h-4"/> คัดลอกลิงก์แชร์</button>
-                </>
-              )}
+              {cloudId && <button onClick={() => setShowQr(true)} className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black shadow-lg uppercase italic flex items-center justify-center gap-2"><QrIcon className="w-5 h-5"/> Share Access QR</button>}
             </div>
           </div>
         )}
 
         {activeRole === 'ADMIN' && (
-          <button onClick={() => setShowOrderForm(true)} className="w-full py-10 bg-white border-4 border-dashed border-blue-100 rounded-[3rem] flex flex-col items-center gap-2 text-blue-600 font-black hover:bg-blue-50 transition-all active:scale-[0.98] group">
-            <div className="p-4 bg-blue-50 rounded-full group-hover:scale-110 transition-transform"><Plus className="w-8 h-8" /></div>
-            <span className="text-xl italic uppercase tracking-tighter">สร้างใบสั่งอาหารใหม่</span>
+          <button onClick={() => setShowOrderForm(true)} className="w-full py-10 bg-white border-4 border-dashed border-blue-100 rounded-[3rem] flex flex-col items-center gap-2 text-blue-600 font-black hover:bg-blue-50 transition-all">
+            <Plus className="w-8 h-8" />
+            <span className="text-xl italic uppercase">New Order</span>
           </button>
         )}
 
@@ -290,20 +279,15 @@ const App: React.FC = () => {
         )}
 
         <div className="space-y-3">
-          {filteredLogs.length === 0 && <div className="py-20 opacity-20 text-center flex flex-col items-center"><UtensilsCrossed className="w-16 h-16 mb-2" /><p className="font-black italic uppercase">ไม่มีข้อมูลใบสั่ง</p></div>}
           {filteredLogs.map(log => {
             const isUrgent = log.allergyItems || log.omitItems;
             return (
-              <div key={log.id} onClick={() => setSelectedLog(log)} className={`bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm cursor-pointer flex items-center gap-4 transition-all active:scale-[0.98] hover:shadow-md ${isUrgent ? 'urgent-glow' : ''}`}>
-                <div className={`w-14 h-14 rounded-[1.8rem] flex items-center justify-center font-black text-xl shrink-0 shadow-inner ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{log.roomNumber}</div>
+              <div key={log.id} onClick={() => setSelectedLog(log)} className={`bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-all ${isUrgent ? 'urgent-glow' : ''}`}>
+                <div className={`w-14 h-14 rounded-[1.8rem] flex items-center justify-center font-black text-xl shrink-0 ${isUrgent ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>{log.roomNumber}</div>
                 <div className="flex-1 min-w-0 text-left">
+                  <span className="font-black text-slate-800 text-lg block truncate italic leading-tight">{log.patientName}</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-slate-800 text-lg block truncate italic">{log.patientName}</span>
-                    {log.ageGroup === AgeGroup.CHILD && <Baby className="w-4 h-4 text-pink-500" />}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate">HN: {log.hn} • {log.mealType}</span>
-                    {isUrgent && <ShieldAlert className="w-3 h-3 text-red-500 animate-pulse" />}
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">HN: {log.hn} • {log.mealType}</span>
                     {log.attachments && log.attachments.length > 0 && <Paperclip className="w-3 h-3 text-blue-500" />}
                   </div>
                 </div>
@@ -317,51 +301,47 @@ const App: React.FC = () => {
       {showOrderForm && <OrderForm onSubmit={addLog} onClose={() => setShowOrderForm(false)} />}
       {selectedLog && <DetailModal log={selectedLog} role={activeRole} onClose={() => setSelectedLog(null)} onUpdate={updateStatus} onUpdateAttachments={handleUpdateAttachments} onShowLabel={l => {setSelectedLog(null); setShowLabel(l);}} />}
       {showLabel && <LabelPrint log={showLabel} onClose={() => setShowLabel(null)} />}
-
+      
       {showQr && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6" onClick={() => setShowQr(false)}>
-          <div className="bg-white p-10 rounded-[4rem] text-center space-y-8 w-full max-w-sm border-8 border-white shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-            <h3 className="text-2xl font-black italic tracking-tighter uppercase">Sync Station Access</h3>
+          <div className="bg-white p-10 rounded-[4rem] text-center space-y-8 w-full max-w-sm border-8 border-white" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-black italic uppercase">Scan to Sync</h3>
             <div className="flex justify-center p-6 bg-slate-50 rounded-[3rem] shadow-inner" id="qr-station" ref={el => {
               if (el && !el.innerHTML) {
                 // @ts-ignore
                 new QRCode(el, { text: `${window.location.origin}${window.location.pathname}?ward_id=${cloudId}&ward_name=${wardCode}`, width: 220, height: 220, colorDark: "#0f172a" });
               }
             }}></div>
-            <div className="space-y-1">
-              <p className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">{wardCode}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">สแกนเพื่อเชื่อมต่อวอร์ดนี้</p>
-            </div>
-            <button onClick={() => setShowQr(false)} className="w-full py-6 bg-slate-900 text-white font-black rounded-[2rem] active:scale-95 transition-transform uppercase italic">ปิดหน้านี้</button>
+            <button onClick={() => setShowQr(false)} className="w-full py-6 bg-slate-900 text-white font-black rounded-[2rem] uppercase italic">Close</button>
           </div>
         </div>
       )}
 
-      {successMsg && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl animate-in slide-in-from-bottom-5 z-[200] flex items-center gap-3 border border-slate-700"><CheckCircle className="w-6 h-6 text-green-400" /> {successMsg}</div>}
+      {successMsg && <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black shadow-2xl z-[200] flex items-center gap-3 animate-in slide-in-from-bottom-5"><CheckCircle className="w-6 h-6 text-green-400" /> {successMsg}</div>}
     </div>
   );
 };
 
 const StatCard = ({ label, value, color }: any) => (
-  <div className="bg-white p-3 rounded-[1.5rem] text-center shadow-sm border border-slate-100 flex flex-col justify-center min-h-[70px]">
+  <div className="bg-white p-3 rounded-[1.5rem] text-center shadow-sm border border-slate-100 min-h-[70px] flex flex-col justify-center">
     <p className={`text-xl font-black ${color} leading-none`}>{value}</p>
-    <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mt-1 leading-tight">{label}</p>
+    <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter mt-1">{label}</p>
   </div>
 );
 
 const RoleCard = ({ icon, label, color, onClick }: any) => {
   const themes: any = { 
-    blue: 'text-blue-600 border-blue-50 hover:bg-blue-50',
-    orange: 'text-orange-600 border-orange-50 hover:bg-orange-50',
-    indigo: 'text-indigo-600 border-indigo-50 hover:bg-indigo-50',
-    green: 'text-green-600 border-green-50 hover:bg-green-50',
-    slate: 'text-slate-600 border-slate-50 hover:bg-slate-50'
+    blue: 'text-blue-600 hover:bg-blue-50',
+    orange: 'text-orange-600 hover:bg-orange-50',
+    indigo: 'text-indigo-600 hover:bg-indigo-50',
+    green: 'text-green-600 hover:bg-green-50',
+    slate: 'text-slate-600 hover:bg-slate-50'
   };
   return (
-    <button onClick={onClick} className={`p-6 bg-white border-2 rounded-[2.5rem] flex items-center gap-5 transition-all active:scale-[0.97] group shadow-xl shadow-slate-200/50 w-full ${themes[color]}`}>
-      <div className="p-4 bg-slate-50 rounded-[1.5rem] group-hover:scale-110 transition-transform shadow-inner">{icon}</div>
-      <span className="font-black text-lg text-slate-800 tracking-tight italic uppercase">{label}</span>
-      <ChevronRight className="ml-auto opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+    <button onClick={onClick} className={`p-6 bg-white border-2 border-transparent rounded-[2.5rem] flex items-center gap-5 transition-all shadow-xl shadow-slate-200/50 w-full ${themes[color]}`}>
+      <div className="p-4 bg-slate-50 rounded-[1.5rem] shadow-inner">{icon}</div>
+      <span className="font-black text-lg text-slate-800 italic uppercase">{label}</span>
+      <ChevronRight className="ml-auto opacity-20" />
     </button>
   );
 };
@@ -373,7 +353,7 @@ const StatusBadge = ({ status }: any) => {
     DISPATCHED: { label: 'นำส่ง', color: 'bg-indigo-50 text-indigo-700' },
     DELIVERED: { label: 'สำเร็จ', color: 'bg-green-50 text-green-700' }
   };
-  return <span className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase border border-current opacity-90 ${cfg[status].color}`}>{cfg[status].label}</span>;
+  return <span className={`px-3 py-1.5 rounded-xl text-[8px] font-black uppercase border border-current ${cfg[status].color}`}>{cfg[status].label}</span>;
 };
 
 const OrderForm = ({ onSubmit, onClose }: any) => {
@@ -385,24 +365,17 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   const checkWithAI = async () => {
-    if (!f.menuItems) { alert("กรุณาใส่เมนูอาหารก่อนตรวจสอบ"); return; }
+    if (!f.menuItems) return;
     setIsAiLoading(true);
-    
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
+      const res = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `ในฐานะนักโภชนาการโรงพยาบาล ตรวจสอบความปลอดภัยของเมนูนี้สำหรับผู้ป่วย:
-        เมนู: ${f.menuItems}
-        เนื้อสัมผัส: ${f.dietTexture}
-        กลุ่มอายุ: ${f.ageGroup}
-        สิ่งที่งด: ${f.omitItems || 'ไม่มี'}
-        สิ่งที่แพ้: ${f.allergyItems || 'ไม่มี'}
-        วิเคราะห์สั้นๆ (ภาษาไทย) ไม่เกิน 2 ประโยค`,
+        contents: `ตรวจสอบเมนูโรงพยาบาล: ${f.menuItems}, เนื้อสัมผัส: ${f.dietTexture}, งด: ${f.omitItems}, แพ้: ${f.allergyItems}. แนะนำสั้นๆ ภาษาไทย 1 ประโยค`,
       });
-      setF({ ...f, aiNote: response.text || "ตรวจสอบเสร็จสมบูรณ์" });
+      setF({ ...f, aiNote: res.text || "ตรวจสอบแล้ว" });
     } catch (e) {
-      setF({ ...f, aiNote: "ระบบวิเคราะห์ AI ขัดข้องชั่วคราว" });
+      setF({ ...f, aiNote: "AI ขัดข้องชั่วคราว" });
     } finally {
       setIsAiLoading(false);
     }
@@ -410,48 +383,39 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
 
   return (
     <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-[100] p-4 flex items-center justify-center">
-      <div className="bg-white w-full max-w-md rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-20 border-8 border-white">
+      <div className="bg-white w-full max-w-md rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border-8 border-white">
         <div className="p-8 bg-blue-600 text-white flex justify-between items-center">
-          <h3 className="font-black text-2xl tracking-tighter italic uppercase">Meal Requisition</h3>
-          <button onClick={onClose} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition-all"><X /></button>
+          <h3 className="font-black text-2xl italic uppercase tracking-tighter">Meal Order</h3>
+          <button onClick={onClose} className="p-3 bg-white/10 rounded-full"><X /></button>
         </div>
         <div className="p-8 space-y-4 overflow-y-auto no-scrollbar bg-slate-50/50 text-left">
           <div className="grid grid-cols-2 gap-4">
-            <FormInput label="HN Number" value={f.hn} onChange={(v:any)=>setF({...f, hn:v})}/>
-            <FormInput label="Room No." value={f.roomNumber} onChange={(v:any)=>setF({...f, roomNumber:v})}/>
+            <FormInput label="HN" value={f.hn} onChange={(v:any)=>setF({...f, hn:v})}/>
+            <FormInput label="Room" value={f.roomNumber} onChange={(v:any)=>setF({...f, roomNumber:v})}/>
           </div>
           <FormInput label="Patient Name" value={f.patientName} onChange={(v:any)=>setF({...f, patientName:v})}/>
           <div className="grid grid-cols-3 gap-2">
-            <SelectInput label="Meal" value={f.mealType} options={['มื้อเช้า', 'มื้อกลางวัน', 'มื้อเย็น']} onChange={(v:any)=>setF({...f, mealType:v})}/>
-            <SelectInput label="Age" value={f.ageGroup} options={[AgeGroup.ADULT, AgeGroup.CHILD]} onChange={(v:any)=>setF({...f, ageGroup:v as AgeGroup})}/>
+            <SelectInput label="Meal" value={f.mealType} options={['มื้อเช้า', 'กลางวัน', 'มื้อเย็น']} onChange={(v:any)=>setF({...f, mealType:v})}/>
             <SelectInput label="Texture" value={f.dietTexture} options={Object.values(DietTexture)} onChange={(v:any)=>setF({...f, dietTexture:v as DietTexture})}/>
+            <SelectInput label="Age" value={f.ageGroup} options={[AgeGroup.ADULT, AgeGroup.CHILD]} onChange={(v:any)=>setF({...f, ageGroup:v as AgeGroup})}/>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Menu Items</label>
-              <button onClick={checkWithAI} disabled={isAiLoading} className="text-[10px] font-black text-indigo-600 flex items-center gap-1 bg-indigo-50 px-3 py-1 rounded-full active:scale-95 transition-all">
-                {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />}
-                ตรวจโดย AI
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Menu Items</label>
+              <button onClick={checkWithAI} className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full flex items-center gap-1">
+                {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <BrainCircuit className="w-3 h-3" />} AI Check
               </button>
             </div>
-            <textarea placeholder="ระบุชื่อเมนูอาหาร..." className="w-full p-5 bg-white rounded-[1.8rem] font-bold h-24 border border-slate-100 outline-none focus:ring-4 ring-blue-50 shadow-inner" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
+            <textarea placeholder="ระบุเมนูอาหาร..." className="w-full p-4 bg-white rounded-2xl h-24 border border-slate-100 outline-none" value={f.menuItems} onChange={e=>setF({...f, menuItems:e.target.value})}/>
           </div>
-          
-          {f.aiNote && (
-            <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex gap-3 animate-in fade-in duration-500">
-               <Sparkles className="w-5 h-5 text-indigo-500 shrink-0" />
-               <p className="text-[11px] font-medium text-indigo-900 italic leading-relaxed">{f.aiNote}</p>
-            </div>
-          )}
-
-          <div className="p-5 bg-red-50 rounded-[2.5rem] space-y-3 border-2 border-red-100/50">
-             <FormInput label="OMIT (งดเว้น)" value={f.omitItems} onChange={(v:any)=>setF({...f, omitItems:v})} isRed />
+          {f.aiNote && <div className="p-3 bg-indigo-50 rounded-xl text-[10px] font-medium text-indigo-900 border border-indigo-100 italic flex gap-2"><Sparkles className="w-4 h-4 shrink-0 text-indigo-400"/> {f.aiNote}</div>}
+          <div className="p-4 bg-red-50 rounded-3xl space-y-3 border border-red-100">
+             <FormInput label="OMIT (งด)" value={f.omitItems} onChange={(v:any)=>setF({...f, omitItems:v})} isRed />
              <FormInput label="ALLERGY (แพ้)" value={f.allergyItems} onChange={(v:any)=>setF({...f, allergyItems:v})} isRed />
           </div>
         </div>
-        <div className="p-8 border-t flex gap-4 bg-white">
-          <button onClick={onClose} className="flex-1 font-black text-slate-400 uppercase text-xs italic">Cancel</button>
-          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000+1000), attachments: []})} className="flex-[2] py-5 bg-blue-600 text-white font-black rounded-[2rem] shadow-lg active:scale-95 transition-transform uppercase italic tracking-tighter text-lg">Confirm Order</button>
+        <div className="p-8 border-t flex gap-4">
+          <button onClick={() => onSubmit({...f, id: Date.now().toString(), status: MealStatus.ORDERED, orderTimestamp: new Date().toLocaleString('th-TH'), orderNumber: 'ORD-'+Math.floor(Math.random()*9000), attachments: []})} className="w-full py-5 bg-blue-600 text-white font-black rounded-2xl shadow-lg uppercase italic tracking-tighter text-lg">Confirm</button>
         </div>
       </div>
     </div>
@@ -460,14 +424,14 @@ const OrderForm = ({ onSubmit, onClose }: any) => {
 
 const FormInput = ({ label, value, onChange, isRed }: any) => (
   <div className="space-y-1">
-    <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${isRed ? 'text-red-500' : 'text-slate-400'}`}>{label}</label>
-    <input className={`w-full p-4 rounded-[1.2rem] font-bold border-none outline-none transition-all ${isRed ? 'bg-white text-red-600 focus:ring-4 ring-red-50 shadow-inner' : 'bg-white focus:ring-4 ring-blue-50 shadow-sm border border-slate-100'}`} value={value} onChange={e=>onChange(e.target.value)}/>
+    <label className={`text-[9px] font-black uppercase ml-1 ${isRed ? 'text-red-500' : 'text-slate-400'}`}>{label}</label>
+    <input className={`w-full p-4 rounded-xl font-bold border-none outline-none ${isRed ? 'bg-white text-red-600' : 'bg-white shadow-sm border border-slate-100'}`} value={value} onChange={e=>onChange(e.target.value)}/>
   </div>
 );
 
 const SelectInput = ({ label, value, options, onChange }: any) => (
   <div className="space-y-1">
-    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 leading-none">{label}</label>
+    <label className="text-[9px] font-black text-slate-400 uppercase ml-1 leading-none">{label}</label>
     <select className="w-full p-3 bg-white rounded-xl font-bold border border-slate-100 text-[10px] outline-none" value={value} onChange={e=>onChange(e.target.value)}>
       {options.map((opt:string)=><option key={opt} value={opt}>{opt}</option>)}
     </select>
@@ -481,105 +445,69 @@ const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShow
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert("ขนาดไฟล์ต้องไม่เกิน 2MB"); return; }
-
     setIsUploading(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64Data = event.target?.result as string;
-      const newAttachment: Attachment = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type,
-        data: base64Data
-      };
-      const updatedAttachments = [...(log.attachments || []), newAttachment];
-      onUpdateAttachments(log.id, updatedAttachments);
+      const newAttachment: Attachment = { id: Date.now().toString(), name: file.name, type: file.type, data: base64Data };
+      onUpdateAttachments(log.id, [...(log.attachments || []), newAttachment]);
       setIsUploading(false);
     };
     reader.readAsDataURL(file);
   };
 
-  const removeAttachment = (attachmentId: string) => {
-    if (!window.confirm("ยืนยันการลบไฟล์?")) return;
-    const updated = (log.attachments || []).filter(a => a.id !== attachmentId);
-    onUpdateAttachments(log.id, updated);
-  };
-
   return (
     <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-2xl z-[110] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl overflow-hidden animate-in zoom-in-95 border-8 border-white" onClick={e => e.stopPropagation()}>
+      <div className="bg-white w-full max-w-md rounded-[4rem] shadow-2xl overflow-hidden border-8 border-white animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
         <div className="p-10 space-y-8 text-left overflow-y-auto max-h-[90vh] no-scrollbar">
           <div className="flex justify-between items-start">
-            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-inner border-2 border-white uppercase italic">{log.roomNumber}</div>
-            <button onClick={onClose} className="p-4 bg-slate-50 rounded-full text-slate-400 active:scale-90 transition-transform"><X className="w-6 h-6" /></button>
+            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center text-4xl font-black shadow-inner uppercase italic">{log.roomNumber}</div>
+            <button onClick={onClose} className="p-4 bg-slate-50 rounded-full text-slate-400"><X /></button>
           </div>
-          
-          <div className="space-y-1">
-            <h3 className="text-3xl font-black text-slate-900 leading-none italic tracking-tighter uppercase">{log.patientName}</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">HN: {log.hn} • {log.mealType}</p>
+          <div>
+            <h3 className="text-3xl font-black text-slate-900 leading-none italic uppercase tracking-tighter">{log.patientName}</h3>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">HN: {log.hn} • {log.mealType}</p>
           </div>
-
-          <div className="p-8 bg-slate-50 rounded-[2.5rem] space-y-5 border border-slate-100 shadow-inner relative">
-            <div className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50/50 w-fit px-3 py-1 rounded-full"><Info className="w-3 h-3"/> {log.dietTexture}</div>
-            <p className="text-2xl font-black text-slate-800 leading-snug tracking-tight italic">"{log.menuItems}"</p>
-            {log.aiNote && (
-              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex gap-3 text-[11px] text-indigo-900 italic">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                {log.aiNote}
-              </div>
-            )}
+          <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-inner space-y-4">
+            <div className="text-[10px] font-black text-blue-600 uppercase bg-blue-50/50 w-fit px-3 py-1 rounded-full">{log.dietTexture}</div>
+            <p className="text-2xl font-black text-slate-800 italic leading-snug">"{log.menuItems}"</p>
+            {log.aiNote && <div className="p-3 bg-white/80 rounded-xl text-[10px] italic text-indigo-900 border border-indigo-50 flex gap-2"><Sparkles className="w-4 h-4 text-indigo-400"/> {log.aiNote}</div>}
             {(log.omitItems || log.allergyItems) && (
               <div className="space-y-2 pt-4 border-t border-slate-200">
-                {log.omitItems && <div className="p-4 bg-red-50 rounded-2xl text-[10px] font-black text-red-600 border border-red-100 uppercase italic">⚠️ งด: {log.omitItems}</div>}
-                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg animate-pulse"><ShieldAlert className="w-4 h-4"/> แพ้: {log.allergyItems}</div>}
+                {log.omitItems && <div className="text-[10px] font-black text-red-600 italic">⚠️ งด: {log.omitItems}</div>}
+                {log.allergyItems && <div className="p-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg animate-pulse"><ShieldAlert className="w-4 h-4"/> แพ้: {log.allergyItems}</div>}
               </div>
             )}
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">เอกสาร / รูปถาดอาหาร</h4>
-              <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="p-2 bg-blue-50 text-blue-600 rounded-full flex items-center gap-2 px-4 text-[10px] font-black uppercase active:scale-95 transition-all">
-                {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} เพิ่มไฟล์
+              <h4 className="text-[10px] font-black uppercase text-slate-400 italic">Attachments / Photo</h4>
+              <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="p-2 bg-blue-50 text-blue-600 rounded-full px-4 text-[10px] font-black uppercase">
+                {isUploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Add File
               </button>
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               {log.attachments?.map((file) => (
-                <div key={file.id} className="group relative bg-white border border-slate-100 rounded-2xl p-3 shadow-sm flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                    {file.type.startsWith('image/') ? <img src={file.data} className="w-full h-full object-cover" /> : <FileText className="w-5 h-5 text-slate-400" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[8px] font-bold text-slate-800 truncate">{file.name}</p>
-                    <button onClick={() => removeAttachment(file.id)} className="text-[8px] font-black text-red-400 uppercase">ลบไฟล์</button>
-                  </div>
+                <div key={file.id} className="bg-slate-50 rounded-2xl p-3 flex items-center gap-2 border border-white shadow-sm overflow-hidden">
+                   {file.type.startsWith('image/') ? <img src={file.data} className="w-8 h-8 rounded object-cover" /> : <FileText className="w-5 h-5 text-slate-400" />}
+                   <p className="text-[8px] font-bold text-slate-800 truncate">{file.name}</p>
+                   <button onClick={() => onUpdateAttachments(log.id, log.attachments!.filter(a=>a.id!==file.id))} className="ml-auto text-red-400"><Trash2 className="w-3 h-3"/></button>
                 </div>
               ))}
-              {(!log.attachments || log.attachments.length === 0) && (
-                <div className="col-span-2 py-6 border-2 border-dashed border-slate-100 rounded-[2rem] flex flex-col items-center justify-center opacity-30">
-                  <ImageIcon className="w-6 h-6 mb-1 text-slate-400" />
-                  <p className="text-[9px] font-black uppercase italic tracking-widest">ไม่มีไฟล์แนบ</p>
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="space-y-4 pt-2">
+          <div className="pt-2">
             {role === 'KITCHEN' && log.status === MealStatus.ORDERED && (
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Kitchen-1')} className="py-6 bg-orange-500 text-white font-black text-xl rounded-[2rem] shadow-xl uppercase italic active:scale-95 transition-transform">Ready</button>
-                <button onClick={() => onShowLabel(log)} className="py-6 bg-slate-900 text-white font-black text-xl rounded-[2rem] flex items-center justify-center gap-2 uppercase italic shadow-xl active:scale-95 transition-transform"><Printer className="w-5 h-5"/> Label</button>
+                <button onClick={() => onUpdate(log.id, MealStatus.KITCHEN_READY, 'Staff')} className="py-6 bg-orange-500 text-white font-black text-xl rounded-2xl shadow-xl uppercase italic">Ready</button>
+                <button onClick={() => onShowLabel(log)} className="py-6 bg-slate-900 text-white font-black text-xl rounded-2xl flex items-center justify-center gap-2 uppercase italic shadow-xl"><Printer className="w-5 h-5"/> Label</button>
               </div>
             )}
-            {role === 'DISPATCH' && log.status === MealStatus.KITCHEN_READY && (
-              <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier-1')} className="w-full py-7 bg-indigo-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Start Delivery</button>
-            )}
-            {role === 'DELIVERY' && log.status === MealStatus.DISPATCHED && (
-              <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Nurse-1')} className="w-full py-7 bg-green-600 text-white font-black text-2xl rounded-[2.2rem] shadow-2xl uppercase italic tracking-widest active:scale-95 transition-transform">Served</button>
-            )}
+            {role === 'DISPATCH' && log.status === MealStatus.KITCHEN_READY && <button onClick={() => onUpdate(log.id, MealStatus.DISPATCHED, 'Courier')} className="w-full py-7 bg-indigo-600 text-white font-black text-2xl rounded-2xl shadow-xl uppercase italic">Start Delivery</button>}
+            {role === 'DELIVERY' && log.status === MealStatus.DISPATCHED && <button onClick={() => onUpdate(log.id, MealStatus.DELIVERED, 'Server')} className="w-full py-7 bg-green-600 text-white font-black text-2xl rounded-2xl shadow-xl uppercase italic">Served</button>}
           </div>
         </div>
       </div>
@@ -588,31 +516,22 @@ const DetailModal = ({ log, role, onClose, onUpdate, onUpdateAttachments, onShow
 };
 
 const LabelPrint = ({ log, onClose }: any) => (
-  <div className="fixed inset-0 bg-white z-[300] flex flex-col items-center justify-center p-8 animate-in zoom-in-95">
-    <div className="w-full max-w-[320px] bg-white border-4 border-black p-8 space-y-5 text-black text-left shadow-2xl relative">
-      <div className="absolute top-4 right-4 text-[9px] font-black"># {log.orderNumber}</div>
+  <div className="fixed inset-0 bg-white z-[300] flex flex-col items-center justify-center p-8">
+    <div className="w-full max-w-[320px] bg-white border-4 border-black p-8 space-y-5 text-black text-left shadow-2xl">
       <div className="border-b-4 border-black pb-4">
-        <h4 className="text-6xl font-black italic tracking-tighter">{log.roomNumber}</h4>
+        <h4 className="text-6xl font-black italic">{log.roomNumber}</h4>
         <p className="text-xl font-black mt-2 uppercase">{log.patientName}</p>
         <p className="text-sm font-bold opacity-60">HN: {log.hn}</p>
       </div>
       <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <p className="text-sm font-black uppercase bg-black text-white px-3 py-1">{log.mealType}</p>
-        </div>
-        <p className="text-2xl font-black leading-tight italic py-2">"{log.menuItems}"</p>
-        <div className="bg-slate-100 p-2 text-[10px] font-black uppercase">Diet: {log.dietTexture}</div>
+        <p className="text-sm font-black uppercase bg-black text-white px-3 py-1 w-fit">{log.mealType}</p>
+        <p className="text-2xl font-black italic leading-tight py-2">"{log.menuItems}"</p>
+        <div className="text-[10px] font-black uppercase">Diet: {log.dietTexture}</div>
       </div>
-      {(log.allergyItems || log.omitItems) && (
-        <div className="bg-black text-white p-4 rounded space-y-1">
-          {log.allergyItems && <p className="text-xs font-black uppercase tracking-widest">🚨 ALLERGY: {log.allergyItems}</p>}
-          {log.omitItems && <p className="text-xs font-black uppercase italic tracking-widest">⚠️ OMIT: {log.omitItems}</p>}
-        </div>
-      )}
     </div>
     <div className="mt-12 flex gap-4 no-print">
-      <button onClick={() => window.print()} className="px-10 py-5 bg-blue-600 text-white font-black rounded-[2rem] flex items-center gap-3 shadow-xl active:scale-95 transition-transform uppercase italic"><Printer className="w-6 h-6"/> Print</button>
-      <button onClick={onClose} className="px-10 py-5 bg-slate-100 font-black rounded-[2rem] uppercase italic">Back</button>
+      <button onClick={() => window.print()} className="px-10 py-5 bg-blue-600 text-white font-black rounded-2xl flex items-center gap-3 shadow-xl uppercase italic"><Printer className="w-6 h-6"/> Print</button>
+      <button onClick={onClose} className="px-10 py-5 bg-slate-100 font-black rounded-2xl uppercase italic">Close</button>
     </div>
   </div>
 );
