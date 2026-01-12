@@ -22,7 +22,6 @@
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Animations */
         @keyframes pulse-urgent { 
             0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
             70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
@@ -36,18 +35,8 @@
         @media print { 
             .no-print { display: none !important; } 
             .print-area { display: block !important; }
-            body { background: white; }
-        }
-
-        /* Smooth Card Transitions */
-        .card-enter {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        .card-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-            transition: opacity 300ms, transform 300ms;
+            body { background: white !important; }
+            .print-card { border: 2px solid black !important; padding: 20px; }
         }
     </style>
 <script type="importmap">
