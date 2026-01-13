@@ -21,11 +21,10 @@
             overflow-x: hidden;
             margin: 0;
             padding: 0;
+            min-height: 100vh;
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+        #root {
+            min-height: 100vh;
         }
     </style>
 <script type="importmap">
@@ -36,7 +35,7 @@
     "react-dom": "https://esm.sh/react-dom@18.3.1",
     "react-dom/": "https://esm.sh/react-dom@18.3.1/",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.463.0?external=react"
+    "lucide-react": "https://esm.sh/lucide-react@0.463.0?deps=react@18.3.1"
   }
 }
 </script>
