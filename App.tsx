@@ -11,10 +11,7 @@ import {
   BarChart3, 
   Stethoscope, 
   ArrowRight, 
-  Settings, 
   LogOut,
-  Wifi,
-  WifiOff,
   RotateCw
 } from 'lucide-react';
 
