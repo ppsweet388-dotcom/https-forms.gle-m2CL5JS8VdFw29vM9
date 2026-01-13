@@ -12,7 +12,6 @@ import {
   BarChart3, 
   Stethoscope, 
   ArrowRight, 
-  Cloud, 
   RefreshCw, 
   Settings, 
   CheckCircle2, 
@@ -113,7 +112,7 @@ const App: React.FC = () => {
            </button>
         </div>
 
-        <div className="text-center mb-10 animate-slide-up">
+        <div className="text-center mb-10">
           <div className="bg-blue-600 w-20 h-20 rounded-[2rem] flex items-center justify-center shadow-2xl mx-auto mb-6">
             <Stethoscope className="text-white w-10 h-10" />
           </div>
@@ -130,7 +129,7 @@ const App: React.FC = () => {
 
         {showSyncModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-            <div className="bg-white rounded-[3rem] p-10 max-w-md w-full shadow-2xl animate-slide-up">
+            <div className="bg-white rounded-[3rem] p-10 max-w-md w-full shadow-2xl">
               <h2 className="text-2xl font-bold text-center mb-6">รหัสกลุ่ม (Group ID)</h2>
               <input 
                 className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-2xl font-bold text-center uppercase mb-6 outline-none focus:border-blue-500"
