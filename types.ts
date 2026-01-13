@@ -1,44 +1,42 @@
-export enum MealStatus {
-  ORDERED = 'ORDERED',
-  KITCHEN_READY = 'KITCHEN_READY',
-  DISPATCHED = 'DISPATCHED',
-  DELIVERED = 'DELIVERED'
-}
-export enum AgeGroup {
-  ADULT = 'ผู้ใหญ่',
-  CHILD = 'เด็ก'
-}
-export enum DietTexture {
-  NORMAL = 'อาหารปกติ',
-  SOFT = 'อาหารอ่อน',
-  BLENDED = 'อาหารปั่นละเอียด',
-  LIQUID = 'อาหารเหลว'
-}
-export interface MealLog {
+
+export type OrderStatus = 'ordered' | 'ready_to_serve' | 'delivering' | 'delivered';
+
+export interface PatientOrder {
   id: string;
   orderNumber: string;
-  roomNumber: string;
   patientName: string;
   hn: string;
-  mealType: string;
-  ageGroup: AgeGroup;
-  dietTexture?: DietTexture;
-  menuItems: string;
-  omitItems?: string;
-  allergyItems?: string;
-  status: MealStatus;
+  roomNumber: string;
+  foodType: string;
+  restrictions: string;
+  foodList: string;
   adminName: string;
-  orderTimestamp: string;
-  kitchenStaffName?: string;
-  kitchenTimestamp?: string;
-  dispatchStaffName?: string;
-  dispatchTimestamp?: string;
-  deliveryStaffName?: string;
-  deliveryTimestamp?: string;
-  aiNote?: string;
-}tring;
-  deliveryPhoto?: string;
-  deliveryTimestamp?: string;
+  createdAt: string;
+  updatedAt: string;
+  status: OrderStatus;
+  
+  kitchen?: {
+    chefName: string;
+    finishedAt: string;
+    photo: string;
+  };
+  
+  dispatch?: {
+    runnerName: string;
+    dispatchedAt: string;
+    photo: string;
+  };
+
+  delivery?: {
+    serverName: string;
+    deliveredAt: string;
+    photo: string;
+  };
 }
 
-export type UserRole = 'ADMIN' | 'KITCHEN' | 'SERVER' | 'VIEWER';
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  KITCHEN = 'KITCHEN',
+  SERVICE = 'SERVICE',
+  DASHBOARD = 'DASHBOARD'
+}
