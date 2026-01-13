@@ -109,9 +109,12 @@ const App: React.FC = () => {
              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isOnline ? 'เชื่อมต่อแล้ว' : 'ออฟไลน์'}</span>
            </div>
            <div className="flex gap-2">
-             <button onClick={() => pullFromCloud()} className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors">
-               <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-               <span className="text-xs font-bold">อัปเดต</span>
+             <button 
+               onClick={() => pullFromCloud()} 
+               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-md active:scale-95"
+             >
+               <RotateCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+               <span className="text-xs font-bold">อัปเดตข้อมูล</span>
              </button>
              <button onClick={() => setShowSyncModal(true)} className="text-slate-600 text-xs font-bold bg-slate-50 px-3 py-2 rounded-xl flex items-center gap-2 border border-slate-200">
                <Settings className="w-3 h-3" /> {roomId || 'ตั้งค่า'}
@@ -173,11 +176,10 @@ const App: React.FC = () => {
         <div className="flex items-center gap-2">
            <button 
              onClick={() => pullFromCloud()} 
-             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md transition-all active:scale-95"
+             className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200/50 transition-all active:scale-95"
            >
              <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-             <span className="text-xs font-bold hidden sm:inline">รีเฟรชข้อมูล</span>
-             <span className="text-xs font-bold sm:hidden">รีเฟรช</span>
+             <span className="text-sm font-bold">รีเฟรชข้อมูล</span>
            </button>
            <button onClick={() => saveRole(null)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-500 shadow-sm transition-all active:scale-95" title="ออกจากระบบ"><LogOut className="w-5 h-5" /></button>
         </div>
