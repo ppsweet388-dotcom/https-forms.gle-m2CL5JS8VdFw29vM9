@@ -54,14 +54,6 @@ const App: React.FC = () => {
     ordersRef.current = orders; 
   }, [orders]);
 
-  const addNotification = useCallback((title: string, message: string, type: 'info' | 'success' | 'warning', IconComponent: React.ElementType) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [{ id, title, message, type, IconComponent }, ...prev].slice(0, 3));
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  }, []);
-
   const saveRole = (newRole: UserRole | null) => {
     setRole(newRole);
     if (newRole) localStorage.setItem('hft_user_role', newRole);
@@ -76,19 +68,13 @@ const App: React.FC = () => {
       if (response.ok) {
         const cloudData: PatientOrder[] = await response.json();
         if (Array.isArray(cloudData)) {
-          const oldOrders = ordersRef.current;
-          if (oldOrders.length > 0 && JSON.stringify(cloudData) !== JSON.stringify(oldOrders)) {
-             // Logic แจ้งเตือนออเดอร์ใหม่
-             setOrders(cloudData);
-          } else if (oldOrders.length === 0) {
-             setOrders(cloudData);
-          }
+          setOrders(cloudData);
         }
       }
     } catch (e) {
       console.debug("Sync info unavailable");
     } finally {
-      setTimeout(() => setIsSyncing(false), 1000);
+      setTimeout(() => setIsSyncing(false), 800);
     }
   }, [roomId, isSyncing]);
 
@@ -150,14 +136,14 @@ const App: React.FC = () => {
               <Lock className="w-10 h-10 text-blue-600 mx-auto mb-4" />
               <h2 className="text-xl font-bold text-center mb-6">ตั้งค่ารหัสกลุ่มงาน (Group ID)</h2>
               <input 
-                id="group-input" 
+                id="group-input-app" 
                 className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xl font-bold text-center uppercase mb-6 outline-none focus:border-blue-500" 
                 placeholder="WARD-A" 
                 defaultValue={roomId} 
               />
               <button 
                 onClick={() => {
-                  const val = (document.getElementById('group-input') as HTMLInputElement).value.toUpperCase().trim();
+                  const val = (document.getElementById('group-input-app') as HTMLInputElement).value.toUpperCase().trim();
                   if (val) { setRoomId(val); localStorage.setItem('hft_room_id', val); setShowSyncModal(false); }
                 }} 
                 className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg"
