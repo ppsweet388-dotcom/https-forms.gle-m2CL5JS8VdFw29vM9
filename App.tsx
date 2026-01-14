@@ -23,13 +23,14 @@ interface AppNotification {
   title: string;
   message: string;
   type: 'info' | 'success' | 'warning';
-  icon: React.ReactNode;
+  IconComponent: React.ElementType;
 }
 
 const App: React.FC = () => {
   const [role, setRole] = useState<UserRole | null>(() => {
     try {
-      return localStorage.getItem('hft_user_role') as UserRole || null;
+      const saved = localStorage.getItem('hft_user_role');
+      return saved ? (saved as UserRole) : null;
     } catch (e) {
       return null;
     }
@@ -54,9 +55,9 @@ const App: React.FC = () => {
     ordersRef.current = orders; 
   }, [orders]);
 
-  const addNotification = useCallback((title: string, message: string, type: 'info' | 'success' | 'warning', icon: React.ReactNode) => {
+  const addNotification = useCallback((title: string, message: string, type: 'info' | 'success' | 'warning', IconComponent: React.ElementType) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setNotifications(prev => [{ id, title, message, type, icon }, ...prev].slice(0, 3));
+    setNotifications(prev => [{ id, title, message, type, IconComponent }, ...prev].slice(0, 3));
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 5000);
@@ -93,32 +94,13 @@ const App: React.FC = () => {
               const oldOrder = oldOrders.find(o => o.id === newOrder.id);
               
               if (!oldOrder) {
-                addNotification(
-                  'ออเดอร์ใหม่!',
-                  `คนไข้: ${newOrder.patientName} (ห้อง ${newOrder.roomNumber})`,
-                  'info',
-                  <ClipboardList className="w-5 h-5 text-blue-600" />
-                );
+                addNotification('ออเดอร์ใหม่!', `คนไข้: ${newOrder.patientName}`, 'info', ClipboardList);
               } else if (oldOrder.status !== newOrder.status) {
-                let title = 'อัปเดตสถานะ';
-                let icon = <RotateCw className="w-5 h-5 text-blue-600" />;
-                let type: 'info' | 'success' | 'warning' = 'info';
-
                 if (newOrder.status === 'ready_to_serve') {
-                  title = 'อาหารปรุงเสร็จแล้ว!';
-                  icon = <ChefHat className="w-5 h-5 text-orange-600" />;
+                  addNotification('อาหารปรุงเสร็จแล้ว!', `คนไข้: ${newOrder.patientName}`, 'info', ChefHat);
                 } else if (newOrder.status === 'delivered') {
-                  title = 'เสิร์ฟอาหารเรียบร้อย!';
-                  icon = <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
-                  type = 'success';
+                  addNotification('เสิร์ฟอาหารเรียบร้อย!', `คนไข้: ${newOrder.patientName}`, 'success', CheckCircle2);
                 }
-
-                addNotification(
-                  title,
-                  `คนไข้: ${newOrder.patientName} (ห้อง ${newOrder.roomNumber})`,
-                  type,
-                  icon
-                );
               }
             });
           }
@@ -129,7 +111,7 @@ const App: React.FC = () => {
         }
       }
     } catch (e) {
-      console.debug("Sync failed");
+      console.debug("Sync cycle skip");
     } finally {
       setTimeout(() => setIsSyncing(false), 800);
     }
@@ -225,7 +207,7 @@ const App: React.FC = () => {
         {notifications.map(note => (
           <div key={note.id} className="bg-white/90 backdrop-blur-xl border border-white/50 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-fade-in">
             <div className={`p-2.5 rounded-xl ${note.type === 'success' ? 'bg-emerald-50' : note.type === 'warning' ? 'bg-rose-50' : 'bg-blue-50'}`}>
-              {note.icon}
+              <note.IconComponent className={`w-5 h-5 ${note.type === 'success' ? 'text-emerald-600' : note.type === 'warning' ? 'text-rose-600' : 'text-blue-600'}`} />
             </div>
             <div className="flex-1">
               <div className="text-xs font-black text-slate-900 leading-tight">{note.title}</div>
@@ -243,7 +225,7 @@ const App: React.FC = () => {
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-2.5 rounded-xl text-white shadow-lg"><Stethoscope className="w-5 h-5" /></div>
           <div>
             <div className="font-extrabold text-slate-900 leading-none text-lg">HFT <span className="text-blue-600">PRO</span></div>
-            <div className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{role} | {roomId}</div>
+            <div className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{String(role)} | {roomId}</div>
           </div>
         </div>
         <div className="flex items-center gap-2">
