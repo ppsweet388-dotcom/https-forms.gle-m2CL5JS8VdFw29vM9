@@ -92,7 +92,6 @@ const App: React.FC = () => {
           if (oldOrders.length > 0) {
             cloudData.forEach(newOrder => {
               const oldOrder = oldOrders.find(o => o.id === newOrder.id);
-              
               if (!oldOrder) {
                 addNotification('ออเดอร์ใหม่!', `คนไข้: ${newOrder.patientName}`, 'info', ClipboardList);
               } else if (oldOrder.status !== newOrder.status) {
@@ -111,7 +110,7 @@ const App: React.FC = () => {
         }
       }
     } catch (e) {
-      console.debug("Sync cycle skip");
+      console.debug("Sync failed");
     } finally {
       setTimeout(() => setIsSyncing(false), 800);
     }
@@ -155,7 +154,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
         <div className="mb-12">
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 w-24 h-24 rounded-[2.5rem] flex items-center justify-center shadow-2xl mx-auto mb-6 transform hover:rotate-6 transition-transform">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 w-24 h-24 rounded-[2.5rem] flex items-center justify-center shadow-2xl mx-auto mb-6">
             <Stethoscope className="text-white w-12 h-12" />
           </div>
           <h1 className="text-5xl font-black text-slate-900 tracking-tight">HFT <span className="text-blue-600">PRO</span></h1>
@@ -183,17 +182,11 @@ const App: React.FC = () => {
               <h2 className="text-2xl font-bold text-center mb-2">ระบุรหัสกลุ่มงาน</h2>
               <p className="text-slate-400 text-center text-sm mb-8 font-medium">เพื่อซิงค์ข้อมูลภายในแผนกเดียวกัน</p>
               
-              <input 
-                id="group-input" 
-                className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-2xl font-bold text-center uppercase mb-6 outline-none focus:border-blue-500 transition-all placeholder:text-slate-200" 
-                placeholder="เช่น WARD7" 
-                defaultValue={roomId}
-                autoFocus
-              />
+              <input id="group-input" className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-[2rem] text-2xl font-bold text-center uppercase mb-6 outline-none focus:border-blue-500 transition-all" placeholder="WARD7" defaultValue={roomId} autoFocus />
               <button onClick={() => {
                 const val = (document.getElementById('group-input') as HTMLInputElement).value.toUpperCase().trim();
                 if (val) { setRoomId(val); localStorage.setItem('hft_room_id', val); setShowSyncModal(false); }
-              }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold py-5 rounded-[2rem] shadow-xl text-lg transition-all active:scale-95 hover:shadow-blue-200">เริ่มใช้งาน</button>
+              }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold py-5 rounded-[2rem] shadow-xl text-lg transition-all active:scale-95">เริ่มใช้งาน</button>
             </div>
           </div>
         )}
@@ -202,20 +195,18 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 safe-area-bottom">
+    <div className="min-h-screen bg-slate-50 pb-20">
       <div className="fixed top-20 right-4 left-4 sm:left-auto sm:right-6 z-[60] flex flex-col gap-3 max-w-sm ml-auto">
         {notifications.map(note => (
           <div key={note.id} className="bg-white/90 backdrop-blur-xl border border-white/50 shadow-2xl rounded-2xl p-4 flex items-center gap-4 animate-fade-in">
-            <div className={`p-2.5 rounded-xl ${note.type === 'success' ? 'bg-emerald-50' : note.type === 'warning' ? 'bg-rose-50' : 'bg-blue-50'}`}>
-              <note.IconComponent className={`w-5 h-5 ${note.type === 'success' ? 'text-emerald-600' : note.type === 'warning' ? 'text-rose-600' : 'text-blue-600'}`} />
+            <div className={`p-2.5 rounded-xl ${note.type === 'success' ? 'bg-emerald-50' : 'bg-blue-50'}`}>
+              <note.IconComponent className={`w-5 h-5 ${note.type === 'success' ? 'text-emerald-600' : 'text-blue-600'}`} />
             </div>
             <div className="flex-1">
               <div className="text-xs font-black text-slate-900 leading-tight">{note.title}</div>
               <div className="text-[10px] font-bold text-slate-400 mt-0.5">{note.message}</div>
             </div>
-            <button onClick={() => setNotifications(prev => prev.filter(n => n.id !== note.id))} className="text-slate-300 hover:text-slate-500 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+            <button onClick={() => setNotifications(prev => prev.filter(n => n.id !== note.id))} className="text-slate-300 hover:text-slate-500"><X className="w-4 h-4" /></button>
           </div>
         ))}
       </div>
@@ -229,13 +220,11 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-           <button onClick={() => pullFromCloud()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+           <button onClick={() => pullFromCloud()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl">
              <RotateCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-blue-600' : 'text-slate-400'}`} />
              <span className="text-xs font-bold hidden sm:inline">รีเฟรช</span>
            </button>
-           <button onClick={() => saveRole(null)} className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-500 hover:bg-rose-100 shadow-sm transition-all active:scale-95">
-             <LogOut className="w-5 h-5" />
-           </button>
+           <button onClick={() => saveRole(null)} className="p-2.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-500"><LogOut className="w-5 h-5" /></button>
         </div>
       </header>
 
@@ -245,13 +234,6 @@ const App: React.FC = () => {
         {role === UserRole.SERVICE && <ServiceView orders={orders} onUpdate={updateOrder} />}
         {role === UserRole.DASHBOARD && <Dashboard orders={orders} />}
       </main>
-
-      {!isOnline && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-rose-600 text-white px-6 py-4 rounded-[2rem] shadow-2xl font-bold flex items-center gap-3 animate-bounce z-50 text-sm">
-          <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
-          ออฟไลน์ - ข้อมูลจะซิงค์เมื่อเชื่อมต่อใหม่
-        </div>
-      )}
     </div>
   );
 };
